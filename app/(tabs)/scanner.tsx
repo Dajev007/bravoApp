@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { QrCode, Camera, FlashlightOff as FlashOff, Slash as Flash } from 'lucide-react-native';
+import { QrCode, Camera, FlashlightOff, Flashlight } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { getRestaurantById, getTableByNumber } from '@/lib/database';
 
@@ -25,6 +25,43 @@ export default function ScannerScreen() {
   const [scanned, setScanned] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [lastScannedData, setLastScannedData] = useState<string>('');
+  const [scanCooldown, setScanCooldown] = useState(false);
+  
+  const processingRef = useRef(false);
+  const lastScanTimeRef = useRef(0);
+  const navigatingRef = useRef(false);
+
+  // Cleanup function to reset all states
+  const resetScannerState = () => {
+    setScanned(false);
+    setIsProcessing(false);
+    setScanCooldown(false);
+    setLastScannedData('');
+    processingRef.current = false;
+    navigatingRef.current = false;
+  };
+
+  // Auto-reset scanner after successful scan with longer delay
+  useEffect(() => {
+    if (scanned && !isProcessing && !navigatingRef.current) {
+      const timer = setTimeout(() => {
+        resetScannerState();
+      }, 3000); // Increased to 3 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [scanned, isProcessing]);
+
+  // Handle scan cooldown
+  useEffect(() => {
+    if (scanCooldown) {
+      const timer = setTimeout(() => {
+        setScanCooldown(false);
+      }, 1500); // 1.5 second cooldown between scans
+      return () => clearTimeout(timer);
+    }
+  }, [scanCooldown]);
 
   if (!permission) {
     return (
@@ -58,19 +95,52 @@ export default function ScannerScreen() {
   }
 
   const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
-    if (scanned || isProcessing) return;
+    const currentTime = Date.now();
     
+    // Prevent multiple rapid scans with debouncing
+    if (
+      scanned || 
+      isProcessing || 
+      !cameraReady || 
+      processingRef.current ||
+      navigatingRef.current ||
+      scanCooldown ||
+      (currentTime - lastScanTimeRef.current < 1000) || // 1 second minimum between scans
+      data === lastScannedData // Prevent scanning the same QR code immediately
+    ) {
+      return;
+    }
+
+    // Filter out non-restaurant QR codes early
+    if (data.startsWith('exp://') || data.startsWith('http://') || data.startsWith('https://')) {
+      console.log('Ignoring non-restaurant QR code:', data);
+      setScanCooldown(true);
+      return;
+    }
+
+    console.log('QR Code scanned:', data);
+    
+    lastScanTimeRef.current = currentTime;
+    setLastScannedData(data);
     setScanned(true);
     setIsProcessing(true);
+    processingRef.current = true;
     
     try {
       // Parse the QR code data
-      const qrData: TableQRData = JSON.parse(data);
+      let qrData: TableQRData;
+      try {
+        qrData = JSON.parse(data);
+      } catch (parseError) {
+        throw new SyntaxError('Invalid QR code format');
+      }
       
       // Validate the QR code structure - only accept table QR codes
       if (!qrData.restaurantId || !qrData.type || qrData.type !== 'restaurant_table' || !qrData.tableNumber) {
         throw new Error('Invalid table QR code format');
       }
+
+      console.log('Validating restaurant and table...', qrData);
 
       // Verify the restaurant exists in the database
       const restaurant = await getRestaurantById(qrData.restaurantId);
@@ -86,63 +156,103 @@ export default function ScannerScreen() {
         throw new Error('Table not found');
       }
 
+      console.log('QR validation successful, navigating to restaurant...');
+      
+      // Set navigation flag to prevent further processing
+      navigatingRef.current = true;
+
       // Navigate to restaurant page with table context for dine-in ordering
-      router.push({
-        pathname: `/restaurant/${qrData.restaurantId}`,
-        params: { 
-          tableId: table.id,
-          tableNumber: qrData.tableNumber,
-          orderType: 'dine_in'
-        }
-      });
+      setTimeout(() => {
+        router.push({
+          pathname: `/restaurant/[id]`,
+          params: { 
+            id: qrData.restaurantId,
+            tableId: table.id,
+            tableNumber: qrData.tableNumber,
+            orderType: 'dine_in'
+          }
+        });
+      }, 500); // Small delay to ensure state is updated
       
     } catch (error) {
       console.error('QR Code processing error:', error);
       
       let errorMessage = 'Invalid table QR code';
+      let errorTitle = 'QR Code Error';
       
       if (error instanceof SyntaxError) {
-        errorMessage = 'This QR code is not a valid table QR code from BravoNest.';
+        errorMessage = 'This QR code is not a valid table QR code from BravoNest. Please scan the QR code on your table.';
+        errorTitle = 'Invalid QR Code';
       } else if (error instanceof Error) {
         if (error.message === 'Restaurant not found') {
-          errorMessage = 'Restaurant not found. This QR code may be outdated.';
+          errorMessage = 'Restaurant not found. This QR code may be outdated or from a different app.';
+          errorTitle = 'Restaurant Not Found';
         } else if (error.message === 'Table not found') {
-          errorMessage = 'Table not found. Please contact restaurant staff.';
+          errorMessage = 'Table not found. Please contact restaurant staff for assistance.';
+          errorTitle = 'Table Not Found';
         } else if (error.message === 'Invalid table QR code format') {
           errorMessage = 'This QR code is not a valid table QR code. Please scan the QR code on your table.';
+          errorTitle = 'Invalid QR Code';
+        } else if (error.message.includes('Network')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+          errorTitle = 'Connection Error';
         }
       }
       
       Alert.alert(
-        'QR Code Error',
+        errorTitle,
         errorMessage,
         [
           {
             text: 'Scan Again',
             onPress: () => {
-              setScanned(false);
-              setIsProcessing(false);
+              resetScannerState();
             },
           },
         ]
       );
       return;
+    } finally {
+      setIsProcessing(false);
+      processingRef.current = false;
+      setScanCooldown(true); // Add cooldown after any scan attempt
     }
-    
-    setIsProcessing(false);
   };
 
   const resetScanner = () => {
-    setScanned(false);
-    setIsProcessing(false);
+    console.log('Manual scanner reset');
+    resetScannerState();
   };
 
   const toggleCameraFacing = () => {
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
+    if (!isProcessing && !scanCooldown) {
+      setFacing(current => (current === 'back' ? 'front' : 'back'));
+    }
   };
 
   const toggleFlash = () => {
-    setFlashOn(!flashOn);
+    if (!isProcessing && !scanCooldown) {
+      setFlashOn(!flashOn);
+    }
+  };
+
+  const handleCameraReady = () => {
+    console.log('Camera ready');
+    setCameraReady(true);
+  };
+
+  const handleCameraError = (event: any) => {
+    console.error('Camera error:', event);
+    Alert.alert(
+      'Camera Error',
+      'Unable to access camera. Please restart the app and try again.',
+      [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
+        },
+      ]
+    );
   };
 
   if (Platform.OS === 'web') {
@@ -167,12 +277,21 @@ export default function ScannerScreen() {
       <CameraView
         style={styles.camera}
         facing={facing}
-        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+        onBarcodeScanned={handleBarCodeScanned}
         barcodeScannerSettings={{
           barcodeTypes: ['qr'],
         }}
         flash={flashOn ? 'on' : 'off'}
+        onCameraReady={handleCameraReady}
+        onMountError={handleCameraError}
       />
+
+      {/* Camera Ready Indicator */}
+      {!cameraReady && (
+        <View style={styles.loadingOverlay}>
+          <Text style={styles.loadingText}>Initializing Camera...</Text>
+        </View>
+      )}
 
       {/* Header Overlay */}
       <View style={styles.headerOverlay}>
@@ -180,6 +299,12 @@ export default function ScannerScreen() {
         <Text style={styles.headerSubtitle}>
           {isProcessing 
             ? 'Processing...' 
+            : !cameraReady
+            ? 'Initializing camera...'
+            : scanCooldown
+            ? 'Ready in a moment...'
+            : navigatingRef.current
+            ? 'Opening restaurant...'
             : 'Point camera at the QR code on your table'
           }
         </Text>
@@ -187,16 +312,21 @@ export default function ScannerScreen() {
 
       {/* Scanning Frame Overlay */}
       <View style={styles.scanningOverlay}>
-        <View style={styles.scanningFrame}>
+        <View style={[
+          styles.scanningFrame,
+          (scanCooldown || isProcessing) && styles.scanningFrameDisabled
+        ]}>
           <View style={[styles.corner, styles.topLeft]} />
           <View style={[styles.corner, styles.topRight]} />
           <View style={[styles.corner, styles.bottomLeft]} />
           <View style={[styles.corner, styles.bottomRight]} />
           
           {/* Processing overlay */}
-          {isProcessing && (
+          {(isProcessing || navigatingRef.current) && (
             <View style={styles.processingOverlay}>
-              <Text style={styles.processingText}>Processing Table QR Code...</Text>
+              <Text style={styles.processingText}>
+                {navigatingRef.current ? 'Opening Restaurant...' : 'Processing Table QR Code...'}
+              </Text>
             </View>
           )}
         </View>
@@ -204,19 +334,33 @@ export default function ScannerScreen() {
 
       {/* Controls Overlay */}
       <View style={styles.controlsOverlay}>
-        <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
+        <TouchableOpacity 
+          style={[
+            styles.controlButton, 
+            (!cameraReady || isProcessing || scanCooldown) && styles.controlButtonDisabled
+          ]} 
+          onPress={toggleFlash}
+          disabled={!cameraReady || isProcessing || scanCooldown}
+        >
           {flashOn ? (
-            <Flash color="#FFFFFF" size={24} />
+            <Flashlight color="#FFFFFF" size={24} />
           ) : (
-            <FlashOff color="#FFFFFF" size={24} />
+            <FlashlightOff color="#FFFFFF" size={24} />
           )}
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.controlButton} onPress={toggleCameraFacing}>
+        <TouchableOpacity 
+          style={[
+            styles.controlButton, 
+            (!cameraReady || isProcessing || scanCooldown) && styles.controlButtonDisabled
+          ]} 
+          onPress={toggleCameraFacing}
+          disabled={!cameraReady || isProcessing || scanCooldown}
+        >
           <Camera color="#FFFFFF" size={24} />
         </TouchableOpacity>
         
-        {scanned && (
+        {(scanned || scanCooldown) && !navigatingRef.current && (
           <TouchableOpacity style={styles.resetButton} onPress={resetScanner}>
             <Text style={styles.resetButtonText}>Scan Again</Text>
           </TouchableOpacity>
@@ -226,8 +370,16 @@ export default function ScannerScreen() {
       {/* Instructions Overlay */}
       <View style={styles.instructionsOverlay}>
         <Text style={styles.instructionText}>
-          {scanned 
+          {navigatingRef.current
+            ? 'Opening restaurant menu...'
+            : isProcessing
             ? 'Table QR code detected! Processing...' 
+            : !cameraReady
+            ? 'Setting up camera...'
+            : scanCooldown
+            ? 'Scanner ready in a moment...'
+            : scanned
+            ? 'QR code scanned successfully!'
             : 'Scan the QR code on your restaurant table to start ordering'
           }
         </Text>
@@ -311,6 +463,22 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
   },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+  },
   headerOverlay: {
     position: 'absolute',
     top: 60,
@@ -354,6 +522,9 @@ const styles = StyleSheet.create({
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  scanningFrameDisabled: {
+    opacity: 0.5,
   },
   corner: {
     position: 'absolute',
@@ -420,6 +591,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 30,
     padding: 15,
+  },
+  controlButtonDisabled: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    opacity: 0.5,
   },
   resetButton: {
     backgroundColor: '#0077b6',
