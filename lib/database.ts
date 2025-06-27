@@ -184,14 +184,22 @@ export async function getTableByNumber(restaurantId: string, tableNumber: number
     .from('restaurant_tables')
     .select(`
       *,
-      restaurant:restaurants(*)
+      restaurants!restaurant_id(*)
     `)
     .eq('restaurant_id', restaurantId)
     .eq('table_number', tableNumber)
     .single();
 
   if (error) throw error;
-  return data as RestaurantTable & { restaurant: Restaurant };
+  
+  // Transform the data to match the expected interface
+  const transformedData = {
+    ...data,
+    restaurant: data.restaurants
+  };
+  delete transformedData.restaurants;
+  
+  return transformedData as RestaurantTable & { restaurant: Restaurant };
 }
 
 export async function getTableById(tableId: string) {
@@ -199,13 +207,21 @@ export async function getTableById(tableId: string) {
     .from('restaurant_tables')
     .select(`
       *,
-      restaurant:restaurants(*)
+      restaurants!restaurant_id(*)
     `)
     .eq('id', tableId)
     .single();
 
   if (error) throw error;
-  return data as RestaurantTable & { restaurant: Restaurant };
+  
+  // Transform the data to match the expected interface
+  const transformedData = {
+    ...data,
+    restaurant: data.restaurants
+  };
+  delete transformedData.restaurants;
+  
+  return transformedData as RestaurantTable & { restaurant: Restaurant };
 }
 
 export async function markTableAsOccupied(tableId: string) {
@@ -353,7 +369,7 @@ export async function getUserOrders() {
     .from('orders')
     .select(`
       *,
-      restaurant:restaurants(*),
+      restaurants!restaurant_id(*),
       order_items:order_items(
         *,
         menu_item:menu_items(*)
@@ -363,7 +379,14 @@ export async function getUserOrders() {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data as Order[];
+  
+  // Transform the data to match the expected interface
+  const transformedData = data.map(order => ({
+    ...order,
+    restaurant: order.restaurants
+  }));
+  
+  return transformedData as Order[];
 }
 
 export async function completeOrder(orderId: string) {
@@ -478,12 +501,19 @@ export async function getUserFavorites() {
     .from('favorites')
     .select(`
       *,
-      restaurant:restaurants(*)
+      restaurants!restaurant_id(*)
     `)
     .eq('user_id', user.id);
 
   if (error) throw error;
-  return data;
+  
+  // Transform the data to match the expected interface
+  const transformedData = data.map(favorite => ({
+    ...favorite,
+    restaurant: favorite.restaurants
+  }));
+  
+  return transformedData;
 }
 
 export async function toggleFavorite(restaurantId: string) {

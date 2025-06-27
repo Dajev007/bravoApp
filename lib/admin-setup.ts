@@ -70,39 +70,45 @@ export async function createRestaurantAdmin(
 // List all restaurant admins
 export async function listRestaurantAdmins(restaurantId?: string) {
   try {
-    let query = supabase
+    let adminQuery = supabase
       .from('restaurant_admins')
-      .select(`
-        id,
-        role,
-        is_active,
-        created_at,
-        user:users(id, full_name, phone, email),
-        restaurant:restaurants(id, name)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (restaurantId) {
-      query = query.eq('restaurant_id', restaurantId);
+      adminQuery = adminQuery.eq('restaurant_id', restaurantId);
     }
 
-    const { data, error } = await query;
+    const { data: adminData, error: adminError } = await adminQuery;
 
-    if (error) throw error;
+    if (adminError) throw adminError;
+
+    // Get user and restaurant data for each admin
+    const enrichedData = await Promise.all(
+      adminData.map(async (admin) => {
+        const [userResult, restaurantResult] = await Promise.all([
+          supabase.from('users').select('id, full_name, phone, email').eq('id', admin.user_id).single(),
+          supabase.from('restaurants').select('id, name').eq('id', admin.restaurant_id).single()
+        ]);
+
+        return {
+          ...admin,
+          user: userResult.data,
+          restaurant: restaurantResult.data
+        };
+      })
+    );
 
     console.log('📋 Restaurant Admins:');
-    data.forEach((admin, index) => {
-      const user = Array.isArray(admin.user) ? admin.user[0] : admin.user;
-      const restaurant = Array.isArray(admin.restaurant) ? admin.restaurant[0] : admin.restaurant;
-      
-      console.log(`\n${index + 1}. ${user?.full_name || 'Unknown'}`);
-      console.log(`   📱 Phone: ${user?.phone || 'N/A'}`);
-      console.log(`   🏪 Restaurant: ${restaurant?.name || 'N/A'}`);
+    enrichedData.forEach((admin, index) => {
+      console.log(`\n${index + 1}. ${admin.user?.full_name || 'Unknown'}`);
+      console.log(`   📱 Phone: ${admin.user?.phone || 'N/A'}`);
+      console.log(`   🏪 Restaurant: ${admin.restaurant?.name || 'N/A'}`);
       console.log(`   👤 Role: ${admin.role}`);
       console.log(`   ✅ Active: ${admin.is_active ? 'Yes' : 'No'}`);
     });
 
-    return data;
+    return enrichedData;
   } catch (error) {
     console.error('❌ Error listing restaurant admins:', error);
     throw error;
@@ -220,12 +226,7 @@ export async function checkUserAdminStatus(userPhone: string) {
 
     const { data: adminRecords, error: adminError } = await supabase
       .from('restaurant_admins')
-      .select(`
-        id,
-        role,
-        is_active,
-        restaurant:restaurants(name)
-      `)
+      .select('*')
       .eq('user_id', user.id)
       .eq('is_active', true);
 
@@ -236,13 +237,28 @@ export async function checkUserAdminStatus(userPhone: string) {
       return null;
     }
 
+    // Get restaurant data for each admin record
+    const enrichedRecords = await Promise.all(
+      adminRecords.map(async (record) => {
+        const { data: restaurantData } = await supabase
+          .from('restaurants')
+          .select('name')
+          .eq('id', record.restaurant_id)
+          .single();
+
+        return {
+          ...record,
+          restaurant: restaurantData
+        };
+      })
+    );
+
     console.log(`✅ User ${userPhone} is admin for ${adminRecords.length} restaurant(s):`);
-    adminRecords.forEach((record, index) => {
-      const restaurant = Array.isArray(record.restaurant) ? record.restaurant[0] : record.restaurant;
-      console.log(`${index + 1}. ${restaurant?.name || 'Unknown'} (${record.role})`);
+    enrichedRecords.forEach((record, index) => {
+      console.log(`${index + 1}. ${record.restaurant?.name || 'Unknown'} (${record.role})`);
     });
 
-    return adminRecords;
+    return enrichedRecords;
   } catch (error) {
     console.error('❌ Error checking admin status:', error);
     throw error;

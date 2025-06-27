@@ -71,23 +71,39 @@ export interface RestaurantAnalytics {
 
 // Admin authentication functions
 export async function getRestaurantAdminByUserId(userId: string) {
-  const { data, error } = await supabase
+  // First get the admin record
+  const { data: adminData, error: adminError } = await supabase
     .from('restaurant_admins')
-    .select(`
-      *,
-      restaurant:restaurants(*)
-    `)
+    .select('*')
     .eq('user_id', userId)
     .eq('is_active', true)
     .single();
 
-  if (error) {
-    if (error.code === 'PGRST116') {
+  if (adminError) {
+    if (adminError.code === 'PGRST116') {
       return null; // No admin record found
     }
-    throw error;
+    throw adminError;
   }
-  return data as RestaurantAdmin;
+
+  // Then get the restaurant data separately
+  const { data: restaurantData, error: restaurantError } = await supabase
+    .from('restaurants')
+    .select('*')
+    .eq('id', adminData.restaurant_id)
+    .single();
+
+  if (restaurantError) {
+    throw restaurantError;
+  }
+
+  // Combine the data
+  const result = {
+    ...adminData,
+    restaurant: restaurantData
+  };
+
+  return result as RestaurantAdmin;
 }
 
 export async function isRestaurantAdmin(userId: string, restaurantId: string) {
