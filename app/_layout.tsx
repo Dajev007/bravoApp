@@ -13,6 +13,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
 import { CartProvider } from '@/contexts/CartContext';
+import { LocationProvider } from '@/contexts/LocationContext';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function RootLayout() {
@@ -34,18 +35,20 @@ export default function RootLayout() {
       <AuthProvider>
         <AdminAuthProvider>
           <CartProvider>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="restaurant" options={{ headerShown: false }} />
-              <Stack.Screen name="orders" options={{ headerShown: false }} />
-              <Stack.Screen name="favorites" options={{ headerShown: false }} />
-              <Stack.Screen name="profile" options={{ headerShown: false }} />
-              <Stack.Screen name="admin" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style="auto" />
+            <LocationProvider>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="restaurant" options={{ headerShown: false }} />
+                <Stack.Screen name="orders" options={{ headerShown: false }} />
+                <Stack.Screen name="favorites" options={{ headerShown: false }} />
+                <Stack.Screen name="profile" options={{ headerShown: false }} />
+                <Stack.Screen name="admin" options={{ headerShown: false }} />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <StatusBar style="auto" />
+            </LocationProvider>
           </CartProvider>
         </AdminAuthProvider>
       </AuthProvider>

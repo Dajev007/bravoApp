@@ -10,19 +10,29 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocation } from '@/contexts/LocationContext';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Search, MapPin, Star, Clock, Sparkles, Heart, Package } from 'lucide-react-native';
 import { AIRecommendations } from '@/components/ui/AIRecommendations';
+import { LocationPicker } from '@/components/ui/LocationPicker';
 import { getRestaurants, getCategories, type Restaurant, type Category } from '@/lib/database';
 
 export default function HomeScreen() {
   const { user } = useAuth();
+  const { location, isLoading: locationLoading } = useLocation();
   const [showAI, setShowAI] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [featuredRestaurants, setFeaturedRestaurants] = useState<Restaurant[]>([]);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const getLocationDisplay = () => {
+    if (locationLoading) return 'Loading location...';
+    if (!location) return 'Set your location';
+    return `${location.address}, ${location.city}`;
+  };
 
   useEffect(() => {
     loadData();
@@ -65,10 +75,16 @@ export default function HomeScreen() {
         <View style={styles.headerContent}>
           <View>
             <Text style={styles.greeting}>Hello, {user?.user_metadata?.name || 'Guest'}! 👋</Text>
-            <View style={styles.locationContainer}>
+            <TouchableOpacity 
+              style={styles.locationContainer}
+              onPress={() => setShowLocationPicker(true)}
+            >
               <MapPin color="#FFFFFF" size={16} />
-              <Text style={styles.location}>Downtown, San Francisco</Text>
-            </View>
+              <Text style={styles.location}>{getLocationDisplay()}</Text>
+              {location?.isManuallySet && (
+                <View style={styles.manualLocationDot} />
+              )}
+            </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.aiButton} onPress={() => setShowAI(true)}>
             <Sparkles color="#0077b6" size={20} />
@@ -215,6 +231,10 @@ export default function HomeScreen() {
       </View>
 
       <AIRecommendations visible={showAI} onClose={() => setShowAI(false)} />
+      <LocationPicker 
+        visible={showLocationPicker} 
+        onClose={() => setShowLocationPicker(false)} 
+      />
     </ScrollView>
   );
 }
@@ -257,12 +277,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   location: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#FFFFFF',
     opacity: 0.9,
+    flex: 1,
+  },
+  manualLocationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#48cae4',
+    marginLeft: 4,
   },
   aiButton: {
     backgroundColor: '#FFFFFF',
