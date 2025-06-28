@@ -133,7 +133,7 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             await signOut();
-            router.replace('/');
+            router.replace('/(auth)/signin');
           },
         },
       ]

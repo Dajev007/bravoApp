@@ -33,6 +33,15 @@ export default function AdminLayout() {
   const router = useRouter();
   const pathname = usePathname();
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.replace('/(auth)/signin');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   if (isAdminLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -99,7 +108,7 @@ export default function AdminLayout() {
         <View style={styles.sidebarFooter}>
           <TouchableOpacity 
             style={styles.logoutButton}
-            onPress={signOut}
+            onPress={handleSignOut}
           >
             <LogOutIcon size={20} color="#ef4444" />
             <Text style={styles.logoutButtonText}>Logout</Text>

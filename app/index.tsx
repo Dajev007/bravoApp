@@ -5,11 +5,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function WelcomeScreen() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  const [hasRedirected, setHasRedirected] = React.useState(false);
 
   React.useEffect(() => {
-    if (user) {
+    // Only redirect once and only if we haven't already redirected
+    if (!isLoading && user && !hasRedirected) {
+      setHasRedirected(true);
       router.replace('/(tabs)');
+    }
+  }, [user, isLoading, hasRedirected]);
+
+  // Reset redirect flag when user becomes null (signed out)
+  React.useEffect(() => {
+    if (!user) {
+      setHasRedirected(false);
     }
   }, [user]);
 

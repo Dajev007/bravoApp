@@ -34,7 +34,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth event:', event, session?.user?.email);
+        const userEmail = session?.user?.email;
+        console.log('Auth event:', event, userEmail ? userEmail : '(no user)');
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
@@ -124,6 +125,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // The auth state will be updated by the onAuthStateChange listener
+      // Navigation will be handled by individual components
+    } catch (error) {
+      console.error('Sign out error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
