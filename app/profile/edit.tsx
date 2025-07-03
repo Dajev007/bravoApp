@@ -6,54 +6,29 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Image,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, User, Phone, Mail, Calendar, Save } from 'lucide-react-native';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ArrowLeft, User, Phone, Mail, MapPin, Edit, Save, X } from 'lucide-react-native';
 import { getUserProfile, updateUserProfile, type UserProfile } from '@/lib/database';
-import { useAuth } from '@/contexts/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function EditProfileScreen() {
-  const { user } = useAuth();
+  const { colors, isDark } = useTheme();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    dateOfBirth: '',
-    dietaryPreferences: [] as string[],
-    favoriteCuisines: [] as string[],
+    date_of_birth: '',
+    dietary_preferences: [] as string[],
+    favorite_cuisines: [] as string[],
   });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  const dietaryOptions = [
-    'Vegetarian',
-    'Vegan',
-    'Gluten-Free',
-    'Dairy-Free',
-    'Nut-Free',
-    'Keto',
-    'Paleo',
-    'Halal',
-    'Kosher',
-  ];
-
-  const cuisineOptions = [
-    'Italian',
-    'Japanese',
-    'Chinese',
-    'Indian',
-    'Mexican',
-    'Thai',
-    'American',
-    'Mediterranean',
-    'French',
-    'Korean',
-    'Vietnamese',
-    'Greek',
-  ];
 
   useEffect(() => {
     loadProfile();
@@ -63,49 +38,32 @@ export default function EditProfileScreen() {
     try {
       const profileData = await getUserProfile();
       setProfile(profileData);
-      
       if (profileData) {
         setFormData({
           name: profileData.name || '',
           phone: profileData.phone || '',
-          dateOfBirth: profileData.date_of_birth || '',
-          dietaryPreferences: profileData.dietary_preferences || [],
-          favoriteCuisines: profileData.favorite_cuisines || [],
+          date_of_birth: profileData.date_of_birth || '',
+          dietary_preferences: profileData.dietary_preferences || [],
+          favorite_cuisines: profileData.favorite_cuisines || [],
         });
-      } else {
-        // Use auth data as fallback
-        setFormData(prev => ({
-          ...prev,
-          name: user?.user_metadata?.name || '',
-          phone: user?.user_metadata?.phone || '',
-        }));
       }
     } catch (error) {
       console.error('Error loading profile:', error);
+      Alert.alert('Error', 'Failed to load profile');
     } finally {
       setLoading(false);
     }
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim()) {
-      Alert.alert('Error', 'Please enter your name');
-      return;
-    }
+    if (!profile) return;
 
     setSaving(true);
     try {
-      await updateUserProfile({
-        name: formData.name,
-        phone: formData.phone,
-        date_of_birth: formData.dateOfBirth || null,
-        dietary_preferences: formData.dietaryPreferences,
-        favorite_cuisines: formData.favoriteCuisines,
-      });
-
-      Alert.alert('Success', 'Profile updated successfully', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      await updateUserProfile(formData);
+      setProfile({ ...profile, ...formData });
+      setEditingField(null);
+      Alert.alert('Success', 'Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
       Alert.alert('Error', 'Failed to update profile');
@@ -114,204 +72,168 @@ export default function EditProfileScreen() {
     }
   };
 
-  const toggleDietaryPreference = (preference: string) => {
-    setFormData(prev => ({
-      ...prev,
-      dietaryPreferences: prev.dietaryPreferences.includes(preference)
-        ? prev.dietaryPreferences.filter(p => p !== preference)
-        : [...prev.dietaryPreferences, preference],
-    }));
+  const handleEdit = (field: string) => {
+    setEditingField(field);
   };
 
-  const toggleFavoriteCuisine = (cuisine: string) => {
-    setFormData(prev => ({
-      ...prev,
-      favoriteCuisines: prev.favoriteCuisines.includes(cuisine)
-        ? prev.favoriteCuisines.filter(c => c !== cuisine)
-        : [...prev.favoriteCuisines, cuisine],
-    }));
+  const handleCancel = () => {
+    if (profile) {
+      setFormData({
+        name: profile.name || '',
+        phone: profile.phone || '',
+        date_of_birth: profile.date_of_birth || '',
+        dietary_preferences: profile.dietary_preferences || [],
+        favorite_cuisines: profile.favorite_cuisines || [],
+      });
+    }
+    setEditingField(null);
+  };
+
+  const styles = createStyles(colors, isDark);
+
+  // Gradient colors based on theme
+  const gradientColors = isDark 
+    ? ['#1a1a1a', '#2d2d2d'] as const // Dark ash colors
+    : [colors.primary, colors.primaryLight] as const; // Light theme
+
+  const renderField = (
+    field: keyof typeof formData,
+    label: string,
+    icon: any,
+    placeholder: string,
+    multiline = false
+  ) => {
+    const isEditing = editingField === field;
+    const IconComponent = icon;
+
+    return (
+      <View style={styles.fieldContainer}>
+        <View style={styles.fieldHeader}>
+          <View style={styles.fieldIcon}>
+            <IconComponent color={colors.primary} size={20} />
+          </View>
+          <Text style={styles.fieldLabel}>{label}</Text>
+          {!isEditing && (
+            <TouchableOpacity onPress={() => handleEdit(field)}>
+              <Edit color={colors.primary} size={16} />
+            </TouchableOpacity>
+          )}
+        </View>
+        
+        {isEditing ? (
+          <View style={styles.editContainer}>
+            <TextInput
+              style={[styles.input, multiline && styles.multilineInput]}
+              value={formData[field]}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, [field]: text }))}
+              placeholder={placeholder}
+              placeholderTextColor={colors.textSecondary}
+              multiline={multiline}
+              numberOfLines={multiline ? 3 : 1}
+              autoFocus
+            />
+            <View style={styles.editActions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+                <X color="#ffffff" size={16} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                <Save color="#ffffff" size={16} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.fieldValue}>
+            <Text style={styles.valueText}>
+              {formData[field] || `Add ${label.toLowerCase()}`}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading profile...</Text>
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      {/* Header */}
-      <View style={styles.header}>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={gradientColors}
+        style={styles.header}
+      >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft color="#0077b6" size={24} />
+          <ArrowLeft color="#ffffff" size={24} />
         </TouchableOpacity>
         <Text style={styles.title}>Edit Profile</Text>
-        <TouchableOpacity 
-          style={styles.saveButton} 
-          onPress={handleSave}
-          disabled={saving}
-        >
-          <Save color="#0077b6" size={24} />
-        </TouchableOpacity>
-      </View>
+        <View style={styles.headerSpacer} />
+      </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Basic Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Basic Information</Text>
-          
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Full Name</Text>
-            <View style={styles.inputWrapper}>
-              <User color="#0077b6" size={20} />
-              <TextInput
-                style={styles.input}
-                value={formData.name}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
-                placeholder="Enter your full name"
-                placeholderTextColor="#90e0ef"
-              />
-            </View>
+        <View style={styles.profileImageContainer}>
+          <View style={styles.profileImage}>
+            <User color={colors.primary} size={40} />
           </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Phone Number</Text>
-            <View style={styles.inputWrapper}>
-              <Phone color="#0077b6" size={20} />
-              <TextInput
-                style={styles.input}
-                value={formData.phone}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
-                placeholder="Enter your phone number"
-                placeholderTextColor="#90e0ef"
-                keyboardType="phone-pad"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Date of Birth</Text>
-            <View style={styles.inputWrapper}>
-              <Calendar color="#0077b6" size={20} />
-              <TextInput
-                style={styles.input}
-                value={formData.dateOfBirth}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, dateOfBirth: text }))}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#90e0ef"
-              />
-            </View>
-          </View>
+          <TouchableOpacity style={styles.editImageButton}>
+            <Edit color="#ffffff" size={16} />
+          </TouchableOpacity>
         </View>
 
-        {/* Dietary Preferences */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Dietary Preferences</Text>
-          <Text style={styles.sectionDescription}>
-            Select your dietary restrictions and preferences
-          </Text>
-          
-          <View style={styles.chipContainer}>
-            {dietaryOptions.map((option) => (
-              <TouchableOpacity
-                key={option}
-                style={[
-                  styles.chip,
-                  formData.dietaryPreferences.includes(option) && styles.chipSelected,
-                ]}
-                onPress={() => toggleDietaryPreference(option)}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    formData.dietaryPreferences.includes(option) && styles.chipTextSelected,
-                  ]}
-                >
-                  {option}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        <View style={styles.fieldsContainer}>
+          {renderField('name', 'Full Name', User, 'Enter your full name')}
+          {renderField('phone', 'Phone', Phone, 'Enter your phone number')}
+          {renderField('date_of_birth', 'Date of Birth', Mail, 'Enter your date of birth (YYYY-MM-DD)')}
         </View>
 
-        {/* Favorite Cuisines */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Favorite Cuisines</Text>
-          <Text style={styles.sectionDescription}>
-            Choose your favorite types of cuisine
-          </Text>
-          
-          <View style={styles.chipContainer}>
-            {cuisineOptions.map((option) => (
-              <TouchableOpacity
-                key={option}
-                style={[
-                  styles.chip,
-                  formData.favoriteCuisines.includes(option) && styles.chipSelected,
-                ]}
-                onPress={() => toggleFavoriteCuisine(option)}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    formData.favoriteCuisines.includes(option) && styles.chipTextSelected,
-                  ]}
-                >
-                  {option}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Save Button */}
-        <View style={styles.saveSection}>
+        <View style={styles.actions}>
           <TouchableOpacity 
-            style={[styles.saveButtonLarge, saving && styles.saveButtonDisabled]} 
+            style={[styles.saveAllButton, saving && styles.disabledButton]}
             onPress={handleSave}
             disabled={saving}
           >
-            <Text style={styles.saveButtonText}>
+            {saving ? (
+              <ActivityIndicator color="#ffffff" size={20} />
+            ) : (
+              <Save color="#ffffff" size={20} />
+            )}
+            <Text style={styles.saveAllButtonText}>
               {saving ? 'Saving...' : 'Save Changes'}
             </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#caf0f8',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#caf0f8',
+    backgroundColor: colors.background,
   },
   loadingText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontFamily: 'Inter-Medium',
+    color: colors.text,
+    marginTop: 12,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#90e0ef',
   },
   backButton: {
     padding: 8,
@@ -319,95 +241,149 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#ffffff',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  saveButton: {
-    padding: 8,
+  headerSpacer: {
+    width: 40,
   },
   content: {
     flex: 1,
   },
-  section: {
-    backgroundColor: '#FFFFFF',
-    marginBottom: 8,
+  profileImageContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    position: 'relative',
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  editImageButton: {
+    position: 'absolute',
+    bottom: 32,
+    right: 'calc(50% - 60px)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.4 : 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  fieldsContainer: {
+    paddingHorizontal: 20,
+    gap: 20,
+  },
+  fieldContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
     padding: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.2 : 0.05,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
-    color: '#03045e',
-    marginBottom: 8,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
-    marginBottom: 16,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#03045e',
-    marginBottom: 8,
-  },
-  inputWrapper: {
+  fieldHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ade8f4',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
+    marginBottom: 12,
+  },
+  fieldIcon: {
+    marginRight: 12,
+  },
+  fieldLabel: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: colors.text,
+    flex: 1,
+  },
+  fieldValue: {
+    marginLeft: 32,
+  },
+  valueText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: colors.textSecondary,
+  },
+  editContainer: {
+    marginLeft: 32,
   },
   input: {
-    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#03045e',
+    color: colors.text,
+    backgroundColor: colors.inputBackground,
+    marginBottom: 12,
   },
-  chipContainer: {
+  multilineInput: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  editActions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
+    justifyContent: 'flex-end',
   },
-  chip: {
-    backgroundColor: '#ade8f4',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#90e0ef',
+  cancelButton: {
+    backgroundColor: colors.accent,
+    padding: 8,
+    borderRadius: 8,
   },
-  chipSelected: {
-    backgroundColor: '#0077b6',
-    borderColor: '#0077b6',
+  saveButton: {
+    backgroundColor: colors.primary,
+    padding: 8,
+    borderRadius: 8,
   },
-  chipText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#0077b6',
+  actions: {
+    paddingHorizontal: 20,
+    paddingVertical: 32,
   },
-  chipTextSelected: {
-    color: '#FFFFFF',
-  },
-  saveSection: {
-    padding: 20,
-  },
-  saveButtonLarge: {
-    backgroundColor: '#0077b6',
-    borderRadius: 12,
-    paddingVertical: 16,
+  saveAllButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    gap: 8,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.4 : 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  saveButtonDisabled: {
+  disabledButton: {
     opacity: 0.7,
   },
-  saveButtonText: {
-    fontSize: 18,
+  saveAllButtonText: {
+    fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
+    color: '#ffffff',
   },
 });

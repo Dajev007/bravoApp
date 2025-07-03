@@ -12,6 +12,7 @@ import {
 import { router } from 'expo-router';
 import { Heart, Star, Clock, MapPin } from 'lucide-react-native';
 import { getUserFavorites, toggleFavorite } from '@/lib/database';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface FavoriteRestaurant {
   id: string;
@@ -68,7 +69,7 @@ export default function FavoritesScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0077b6" />
+        <ActivityIndicator size="large" color="#3b8dba" />
         <Text style={styles.loadingText}>Loading favorites...</Text>
       </View>
     );
@@ -77,12 +78,15 @@ export default function FavoritesScreen() {
   if (favorites.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <LinearGradient
+          colors={['#3b8dba', '#a2c7e7']}
+          style={styles.header}
+        >
           <Text style={styles.title}>Your Favorites</Text>
-        </View>
+        </LinearGradient>
         
         <View style={styles.emptyContainer}>
-          <Heart color="#90e0ef" size={80} />
+          <Heart color="#a2c7e7" size={80} />
           <Text style={styles.emptyTitle}>No favorites yet</Text>
           <Text style={styles.emptyText}>
             Start adding restaurants to your favorites by tapping the heart icon.
@@ -100,10 +104,13 @@ export default function FavoritesScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <LinearGradient
+        colors={['#3b8dba', '#a2c7e7']}
+        style={styles.header}
+      >
         <Text style={styles.title}>Your Favorites</Text>
         <Text style={styles.subtitle}>{favorites.length} restaurant{favorites.length !== 1 ? 's' : ''}</Text>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.favoritesList}
@@ -140,14 +147,14 @@ export default function FavoritesScreen() {
               
               <View style={styles.restaurantMeta}>
                 <View style={styles.metaItem}>
-                  <Star color="#48cae4" size={16} fill="#48cae4" />
+                  <Star color="#3b8dba" size={16} fill="#3b8dba" />
                   <Text style={styles.metaText}>
                     {favorite.restaurant.rating} ({favorite.restaurant.review_count})
                   </Text>
                 </View>
                 
                 <View style={styles.metaItem}>
-                  <Clock color="#0077b6" size={16} />
+                  <Clock color="#3b8dba" size={16} />
                   <Text style={styles.metaText}>
                     {favorite.restaurant.delivery_time_min}-{favorite.restaurant.delivery_time_max} min
                   </Text>
@@ -170,37 +177,38 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#caf0f8',
+    backgroundColor: '#f0f8ff',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#caf0f8',
+    backgroundColor: '#f0f8ff',
   },
   loadingText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontFamily: 'Inter-Medium',
+    color: '#1e3a8a',
     marginTop: 12,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#90e0ef',
   },
   title: {
     fontSize: 28,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#ffffff',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+    opacity: 0.9,
     marginTop: 4,
   },
   emptyContainer: {
@@ -212,55 +220,61 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#1e3a8a',
     marginTop: 24,
     marginBottom: 12,
   },
   emptyText: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: '#1e3a8a',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
   },
   browseButton: {
-    backgroundColor: '#0077b6',
+    backgroundColor: '#3b8dba',
     paddingHorizontal: 32,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   browseButtonText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
+    color: '#ffffff',
   },
   favoritesList: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingTop: 20,
   },
   restaurantCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 16,
-    shadowColor: '#0077b6',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowRadius: 8,
+    elevation: 6,
     borderWidth: 1,
-    borderColor: '#ade8f4',
+    borderColor: '#b1e0e7',
   },
   restaurantImage: {
     width: 100,
     height: 100,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   restaurantInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 16,
     justifyContent: 'space-between',
   },
   restaurantHeader: {
@@ -271,8 +285,8 @@ const styles = StyleSheet.create({
   },
   restaurantName: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
     flex: 1,
   },
   favoriteButton: {
@@ -281,13 +295,13 @@ const styles = StyleSheet.create({
   cuisine: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
-    color: '#0077b6',
+    color: '#3b8dba',
     marginBottom: 4,
   },
   description: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: 'Inter-Regular',
-    color: '#90e0ef',
+    color: '#3b8dba',
     marginBottom: 8,
   },
   restaurantMeta: {
@@ -302,12 +316,12 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontFamily: 'Inter-Medium',
+    color: '#1e3a8a',
   },
   deliveryFee: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#0077b6',
+    fontFamily: 'Inter-SemiBold',
+    color: '#3b8dba',
   },
 });

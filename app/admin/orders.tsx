@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { getRestaurantOrdersAdmin, updateOrderStatus } from '@/lib/admin-database';
+import { getRestaurantOrders, updateOrderStatus } from '@/lib/admin-database';
 import { 
   ShoppingBagIcon, 
   ClockIcon, 
@@ -71,7 +71,7 @@ export default function OrdersManagement() {
     if (!restaurantId) return;
 
     try {
-      const ordersData = await getRestaurantOrdersAdmin(
+      const ordersData = await getRestaurantOrders(
         restaurantId, 
         selectedStatus === 'all' ? undefined : selectedStatus
       );

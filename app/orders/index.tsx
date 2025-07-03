@@ -12,6 +12,7 @@ import {
 import { router } from 'expo-router';
 import { Clock, MapPin, Star, ChevronRight, Package } from 'lucide-react-native';
 import { getUserOrders, type Order } from '@/lib/database';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function OrdersScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -42,15 +43,15 @@ export default function OrdersScreen() {
   const getStatusColor = (status: Order['status']) => {
     switch (status) {
       case 'delivered':
-        return '#48cae4';
+        return '#3b8dba';
       case 'cancelled':
-        return '#023e8a';
+        return '#1e3a8a';
       case 'pending':
       case 'confirmed':
       case 'preparing':
-        return '#0077b6';
+        return '#3b8dba';
       default:
-        return '#90e0ef';
+        return '#a2c7e7';
     }
   };
 
@@ -78,7 +79,7 @@ export default function OrdersScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0077b6" />
+        <ActivityIndicator size="large" color="#3b8dba" />
         <Text style={styles.loadingText}>Loading orders...</Text>
       </View>
     );
@@ -87,12 +88,15 @@ export default function OrdersScreen() {
   if (orders.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <LinearGradient
+          colors={['#3b8dba', '#a2c7e7']}
+          style={styles.header}
+        >
           <Text style={styles.title}>Your Orders</Text>
-        </View>
+        </LinearGradient>
         
         <View style={styles.emptyContainer}>
-          <Package color="#90e0ef" size={80} />
+          <Package color="#a2c7e7" size={80} />
           <Text style={styles.emptyTitle}>No orders yet</Text>
           <Text style={styles.emptyText}>
             When you place your first order, it will appear here.
@@ -110,9 +114,12 @@ export default function OrdersScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <LinearGradient
+        colors={['#3b8dba', '#a2c7e7']}
+        style={styles.header}
+      >
         <Text style={styles.title}>Your Orders</Text>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.ordersList}
@@ -143,7 +150,7 @@ export default function OrdersScreen() {
                 >
                   <Text style={styles.statusText}>{getStatusText(order.status)}</Text>
                 </View>
-                <ChevronRight color="#90e0ef" size={20} />
+                <ChevronRight color="#a2c7e7" size={20} />
               </View>
             </View>
 
@@ -156,7 +163,7 @@ export default function OrdersScreen() {
 
             <View style={styles.orderMeta}>
               <View style={styles.metaItem}>
-                <Clock color="#0077b6" size={16} />
+                <Clock color="#3b8dba" size={16} />
                 <Text style={styles.metaText}>
                   {order.estimated_delivery_time
                     ? new Date(order.estimated_delivery_time).toLocaleTimeString([], {
@@ -168,7 +175,7 @@ export default function OrdersScreen() {
               </View>
               {order.restaurant?.address && (
                 <View style={styles.metaItem}>
-                  <MapPin color="#0077b6" size={16} />
+                  <MapPin color="#3b8dba" size={16} />
                   <Text style={styles.metaText} numberOfLines={1}>
                     {order.restaurant.address}
                   </Text>
@@ -185,32 +192,32 @@ export default function OrdersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#caf0f8',
+    backgroundColor: '#f0f8ff',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#caf0f8',
+    backgroundColor: '#f0f8ff',
   },
   loadingText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontFamily: 'Inter-Medium',
+    color: '#1e3a8a',
     marginTop: 12,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#90e0ef',
   },
   title: {
     fontSize: 28,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#ffffff',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   emptyContainer: {
     flex: 1,
@@ -221,65 +228,71 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#1e3a8a',
     marginTop: 24,
     marginBottom: 12,
   },
   emptyText: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: '#1e3a8a',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
   },
   browseButton: {
-    backgroundColor: '#0077b6',
+    backgroundColor: '#3b8dba',
     paddingHorizontal: 32,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   browseButtonText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
+    color: '#ffffff',
   },
   ordersList: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingTop: 20,
   },
   orderCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#0077b6',
-    shadowOffset: { width: 0, height: 2 },
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowRadius: 8,
+    elevation: 6,
     borderWidth: 1,
-    borderColor: '#ade8f4',
+    borderColor: '#b1e0e7',
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   orderInfo: {
     flex: 1,
   },
   restaurantName: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
     marginBottom: 4,
   },
   orderDate: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontFamily: 'Inter-Medium',
+    color: '#3b8dba',
   },
   orderStatus: {
     flexDirection: 'row',
@@ -288,29 +301,32 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   statusText: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
+    color: '#ffffff',
   },
   orderDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f8ff',
   },
   orderItems: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontFamily: 'Inter-Medium',
+    color: '#3b8dba',
   },
   orderTotal: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#1e3a8a',
   },
   orderMeta: {
     gap: 8,
@@ -318,12 +334,12 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   metaText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#3b8dba',
     flex: 1,
   },
 });

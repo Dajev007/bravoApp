@@ -17,10 +17,12 @@ import { Search, MapPin, Star, Clock, Sparkles, Heart, Package } from 'lucide-re
 import { AIRecommendations } from '@/components/ui/AIRecommendations';
 import { LocationPicker } from '@/components/ui/LocationPicker';
 import { getRestaurants, getCategories, type Restaurant, type Category } from '@/lib/database';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const { location, isLoading: locationLoading } = useLocation();
+  const { colors, isDark } = useTheme();
   const [showAI, setShowAI] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [featuredRestaurants, setFeaturedRestaurants] = useState<Restaurant[]>([]);
@@ -56,11 +58,13 @@ export default function HomeScreen() {
     }
   };
 
+  const styles = createStyles(colors, isDark);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0077b6" />
-        <Text style={styles.loadingText}>Loading restaurants...</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading restaurants...</Text>
       </View>
     );
   }
@@ -69,7 +73,7 @@ export default function HomeScreen() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <LinearGradient
-        colors={['#03045e', '#023e8a', '#0077b6']}
+        colors={isDark ? [colors.primary, colors.primaryDark] : [colors.primary, colors.primaryLight]}
         style={styles.header}
       >
         <View style={styles.headerContent}>
@@ -87,7 +91,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.aiButton} onPress={() => setShowAI(true)}>
-            <Sparkles color="#0077b6" size={20} />
+            <Sparkles color="#3b8dba" size={20} />
           </TouchableOpacity>
         </View>
 
@@ -96,7 +100,7 @@ export default function HomeScreen() {
           style={styles.searchContainer}
           onPress={() => router.push('/(tabs)/restaurants')}
         >
-          <Search color="#999" size={20} />
+          <Search color="#a2c7e7" size={20} />
           <Text style={styles.searchPlaceholder}>Search restaurants, cuisines...</Text>
         </TouchableOpacity>
       </LinearGradient>
@@ -107,7 +111,7 @@ export default function HomeScreen() {
           style={styles.actionCard}
           onPress={() => router.push('/orders')}
         >
-          <Package color="#0077b6" size={24} />
+          <Package color="#3b8dba" size={24} />
           <Text style={styles.actionText}>Your Orders</Text>
         </TouchableOpacity>
         
@@ -115,8 +119,16 @@ export default function HomeScreen() {
           style={styles.actionCard}
           onPress={() => router.push('/favorites')}
         >
-          <Heart color="#0077b6" size={24} />
+          <Heart color="#3b8dba" size={24} />
           <Text style={styles.actionText}>Favorites</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.actionCard}
+          onPress={() => setShowAI(true)}
+        >
+          <Sparkles color="#3b8dba" size={24} />
+          <Text style={styles.actionText}>AI Picks</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -173,7 +185,7 @@ export default function HomeScreen() {
             >
               <Image source={{ uri: restaurant.image_url }} style={styles.featuredImage} />
               <LinearGradient
-                colors={['transparent', 'rgba(3,4,94,0.8)']}
+                colors={['transparent', 'rgba(59, 141, 186, 0.8)']}
                 style={styles.featuredOverlay}
               >
                 <View style={styles.featuredContent}>
@@ -239,21 +251,21 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#caf0f8',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#caf0f8',
+    backgroundColor: colors.background,
   },
   loadingText: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: colors.textSecondary,
     marginTop: 12,
   },
   header: {
@@ -272,6 +284,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
     marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   locationContainer: {
     flexDirection: 'row',
@@ -280,46 +295,51 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   location: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#FFFFFF',
-    opacity: 0.9,
+    opacity: 0.95,
     flex: 1,
   },
   manualLocationDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#48cae4',
+    backgroundColor: colors.accentLight,
     marginLeft: 4,
   },
   aiButton: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.4 : 0.2,
+    shadowRadius: 8,
     elevation: 4,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   searchPlaceholder: {
     flex: 1,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#999',
+    color: colors.textSecondary,
   },
   quickActions: {
     flexDirection: 'row',
@@ -329,17 +349,18 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     alignItems: 'center',
-    shadowColor: '#0077b6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
     borderWidth: 1,
-    borderColor: '#90e0ef',
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   actionIcon: {
     fontSize: 24,
@@ -348,12 +369,13 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
-    color: '#03045e',
+    color: colors.text,
     textAlign: 'center',
+    marginTop: 8,
   },
   section: {
     paddingHorizontal: 20,
-    marginBottom: 32,
+    paddingVertical: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -362,45 +384,47 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: colors.text,
+    marginBottom: 16,
   },
   seeAllText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
-    color: '#0077b6',
+    color: colors.primary,
   },
   categoriesContainer: {
-    flexDirection: 'row',
+    paddingLeft: 20,
   },
   categoryCard: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     marginRight: 12,
+    alignItems: 'center',
     minWidth: 80,
-    shadowColor: '#0077b6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
     borderWidth: 1,
-    borderColor: '#90e0ef',
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   categoryIcon: {
-    fontSize: 32,
+    fontSize: 24,
     marginBottom: 8,
   },
   categoryName: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
-    color: '#03045e',
+    color: colors.text,
     textAlign: 'center',
   },
   restaurantsContainer: {
-    flexDirection: 'row',
+    paddingLeft: 20,
   },
   featuredCard: {
     width: 280,
@@ -409,7 +433,12 @@ const styles = StyleSheet.create({
     marginRight: 16,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#90e0ef',
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   featuredImage: {
     width: '100%',
@@ -464,49 +493,60 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   restaurantCard: {
-    flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    shadowColor: '#0077b6',
-    shadowOffset: { width: 0, height: 2 },
+    borderRadius: 16,
+    marginRight: 16,
+    width: 280,
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#ade8f4',
+    shadowRadius: 8,
+    elevation: 3,
   },
   restaurantImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+    width: '100%',
+    height: 140,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   restaurantInfo: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'space-between',
+    padding: 16,
   },
   restaurantName: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+    fontFamily: 'Inter-Bold',
+    color: '#3b8dba',
     marginBottom: 4,
   },
   restaurantCuisine: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: '#a2c7e7',
     marginBottom: 8,
   },
   restaurantMeta: {
     flexDirection: 'row',
-    gap: 12,
+    justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  restaurantRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ratingText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#3b8dba',
+  },
+  restaurantDistance: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#a2c7e7',
   },
   deliveryFee: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
-    color: '#0077b6',
+    color: '#3b8dba',
   },
 });

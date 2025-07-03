@@ -8,7 +8,8 @@ import {
   TextInput,
   Switch,
   Alert,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -142,7 +143,7 @@ export default function RestaurantManagement() {
                 disabled={loading}
               >
                 {loading ? (
-                  <LoadingSpinner size="small" />
+                  <ActivityIndicator size="small" color="#0077b6" />
                 ) : (
                   <>
                     <SaveIcon size={20} color="#ffffff" />

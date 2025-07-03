@@ -8,19 +8,24 @@ import {
   Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, Plus, CreditCard, Smartphone, DollarSign, Star } from 'lucide-react-native';
+import { ArrowLeft, Plus, CreditCard, Smartphone, DollarSign, Star, Check, Trash2 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface PaymentMethod {
   id: string;
-  type: 'card' | 'digital' | 'cash';
+  type: 'card' | 'digital' | 'cash' | 'paypal' | 'apple_pay';
   name: string;
   details: string;
   isDefault: boolean;
   icon: string;
+  lastFour?: string;
+  expiryMonth?: number;
+  expiryYear?: number;
+  brand?: string;
 }
 
 export default function PaymentScreen() {
-  const [paymentMethods] = useState<PaymentMethod[]>([
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
     {
       id: '1',
       type: 'card',
@@ -28,6 +33,10 @@ export default function PaymentScreen() {
       details: 'Expires 12/25',
       isDefault: true,
       icon: '💳',
+      lastFour: '4242',
+      expiryMonth: 12,
+      expiryYear: 2025,
+      brand: 'Visa',
     },
     {
       id: '2',
@@ -65,6 +74,34 @@ export default function PaymentScreen() {
     );
   };
 
+  const handleDeletePaymentMethod = (methodId: string, methodName: string) => {
+    Alert.alert(
+      'Delete Payment Method',
+      `Are you sure you want to delete ${methodName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            setPaymentMethods(prev => prev.filter(method => method.id !== methodId));
+            Alert.alert('Success', 'Payment method deleted successfully');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSetDefault = (methodId: string) => {
+    setPaymentMethods(prev =>
+      prev.map(method => ({
+        ...method,
+        isDefault: method.id === methodId,
+      }))
+    );
+    Alert.alert('Success', 'Default payment method updated');
+  };
+
   const getPaymentIcon = (type: PaymentMethod['type']) => {
     switch (type) {
       case 'card':
@@ -73,100 +110,135 @@ export default function PaymentScreen() {
         return Smartphone;
       case 'cash':
         return DollarSign;
+      case 'paypal':
+        return () => <Text style={styles.paypalIcon}>PayPal</Text>;
+      case 'apple_pay':
+        return () => <Text style={styles.applePayIcon}>Apple Pay</Text>;
       default:
         return CreditCard;
     }
   };
 
+  const getPaymentMethodName = (method: PaymentMethod) => {
+    if (method.type === 'card') {
+      return `${method.brand} •••• ${method.lastFour}`;
+    } else if (method.type === 'paypal') {
+      return 'PayPal';
+    } else if (method.type === 'apple_pay') {
+      return 'Apple Pay';
+    }
+    return 'Unknown';
+  };
+
+  const getPaymentMethodDetails = (method: PaymentMethod) => {
+    if (method.type === 'card' && method.expiryMonth && method.expiryYear) {
+      return `Expires ${method.expiryMonth.toString().padStart(2, '0')}/${method.expiryYear}`;
+    }
+    return '';
+  };
+
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={['#3b8dba', '#a2c7e7']}
+        style={styles.header}
+      >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft color="#0077b6" size={24} />
+          <ArrowLeft color="#ffffff" size={24} />
         </TouchableOpacity>
         <Text style={styles.title}>Payment Methods</Text>
         <TouchableOpacity style={styles.addButton} onPress={handleAddPaymentMethod}>
-          <Plus color="#0077b6" size={24} />
+          <Plus color="#ffffff" size={24} />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Payment Methods */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Saved Payment Methods</Text>
-          
-          {paymentMethods.map((method) => {
-            const IconComponent = getPaymentIcon(method.type);
-            return (
-              <View key={method.id} style={styles.paymentCard}>
-                <View style={styles.paymentHeader}>
-                  <View style={styles.paymentInfo}>
-                    <View style={styles.paymentIconContainer}>
-                      <IconComponent color="#0077b6" size={20} />
+        {paymentMethods.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <CreditCard color="#a2c7e7" size={80} />
+            <Text style={styles.emptyTitle}>No payment methods</Text>
+            <Text style={styles.emptyText}>
+              Add your first payment method to make checkout faster and easier.
+            </Text>
+            <TouchableOpacity style={styles.addFirstButton} onPress={handleAddPaymentMethod}>
+              <Plus color="#ffffff" size={20} />
+              <Text style={styles.addFirstButtonText}>Add Payment Method</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.paymentMethodsList}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Saved Payment Methods</Text>
+              <Text style={styles.sectionDescription}>
+                Manage your payment options for faster checkout
+              </Text>
+            </View>
+
+            {paymentMethods.map((method) => {
+              const IconComponent = getPaymentIcon(method.type);
+              return (
+                <View key={method.id} style={styles.paymentMethodCard}>
+                  <View style={styles.methodHeader}>
+                    <View style={styles.methodInfo}>
+                      <View style={styles.methodIcon}>
+                        <IconComponent color="#3b8dba" size={24} />
+                      </View>
+                      <View style={styles.methodDetails}>
+                        <View style={styles.methodNameContainer}>
+                          <Text style={styles.methodName}>
+                            {getPaymentMethodName(method)}
+                          </Text>
+                          {method.isDefault && (
+                            <View style={styles.defaultBadge}>
+                              <Star color="#3b8dba" size={12} fill="#3b8dba" />
+                              <Text style={styles.defaultText}>Default</Text>
+                            </View>
+                          )}
+                        </View>
+                        {getPaymentMethodDetails(method) && (
+                          <Text style={styles.methodExpiryText}>
+                            {getPaymentMethodDetails(method)}
+                          </Text>
+                        )}
+                      </View>
                     </View>
-                    <View style={styles.paymentDetails}>
-                      <Text style={styles.paymentName}>{method.name}</Text>
-                      <Text style={styles.paymentSubtext}>{method.details}</Text>
-                    </View>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() =>
+                        handleDeletePaymentMethod(method.id, getPaymentMethodName(method))
+                      }
+                    >
+                      <Trash2 color="#ffffff" size={20} />
+                    </TouchableOpacity>
                   </View>
-                  
-                  {method.isDefault && (
-                    <View style={styles.defaultBadge}>
-                      <Star color="#48cae4" size={12} fill="#48cae4" />
-                      <Text style={styles.defaultText}>Default</Text>
-                    </View>
-                  )}
-                </View>
-                
-                <View style={styles.paymentActions}>
+
                   {!method.isDefault && (
-                    <TouchableOpacity style={styles.actionButton}>
-                      <Text style={styles.actionButtonText}>Set as Default</Text>
+                    <TouchableOpacity
+                      style={styles.setDefaultButton}
+                      onPress={() => handleSetDefault(method.id)}
+                    >
+                      <Check color="#3b8dba" size={16} />
+                      <Text style={styles.setDefaultText}>Set as Default</Text>
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity style={styles.actionButton}>
-                    <Text style={[styles.actionButtonText, styles.removeText]}>Remove</Text>
-                  </TouchableOpacity>
                 </View>
-              </View>
-            );
-          })}
-        </View>
+              );
+            })}
 
-        {/* Add Payment Method */}
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.addPaymentCard} onPress={handleAddPaymentMethod}>
-            <View style={styles.addPaymentIcon}>
-              <Plus color="#0077b6" size={24} />
+            <TouchableOpacity style={styles.addNewButton} onPress={handleAddPaymentMethod}>
+              <Plus color="#3b8dba" size={24} />
+              <Text style={styles.addNewText}>Add New Payment Method</Text>
+            </TouchableOpacity>
+
+            <View style={styles.securitySection}>
+              <Text style={styles.securityTitle}>Security & Privacy</Text>
+              <Text style={styles.securityText}>
+                Your payment information is encrypted and stored securely. We never share your
+                financial details with restaurants or third parties.
+              </Text>
             </View>
-            <Text style={styles.addPaymentText}>Add New Payment Method</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Payment Security */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Security</Text>
-          <View style={styles.securityCard}>
-            <Text style={styles.securityTitle}>🔒 Your payments are secure</Text>
-            <Text style={styles.securityText}>
-              We use industry-standard encryption to protect your payment information. 
-              Your card details are never stored on our servers.
-            </Text>
           </View>
-        </View>
-
-        {/* Billing Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Billing Information</Text>
-          <TouchableOpacity style={styles.billingCard}>
-            <View style={styles.billingInfo}>
-              <Text style={styles.billingTitle}>Billing Address</Text>
-              <Text style={styles.billingText}>123 Main St, San Francisco, CA 94102</Text>
-            </View>
-            <Text style={styles.editText}>Edit</Text>
-          </TouchableOpacity>
-        </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -175,18 +247,15 @@ export default function PaymentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#caf0f8',
+    backgroundColor: '#f0f8ff',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#90e0ef',
   },
   backButton: {
     padding: 8,
@@ -194,7 +263,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#ffffff',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   addButton: {
     padding: 8,
@@ -202,166 +274,201 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  section: {
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 100,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#3b8dba',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  addFirstButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3b8dba',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  addFirstButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#ffffff',
+  },
+  paymentMethodsList: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  sectionHeader: {
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
-    paddingHorizontal: 20,
+    color: '#1e3a8a',
+    marginBottom: 8,
+  },
+  sectionDescription: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#3b8dba',
+    lineHeight: 22,
+  },
+  paymentMethodCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 16,
-  },
-  paymentCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginBottom: 12,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#0077b6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
     borderWidth: 1,
-    borderColor: '#ade8f4',
+    borderColor: '#b1e0e7',
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  paymentHeader: {
+  methodHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
-  paymentInfo: {
+  methodInfo: {
     flexDirection: 'row',
-    alignItems: 'center',
     flex: 1,
   },
-  paymentIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: '#ade8f4',
+  methodIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#f0f8ff',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
-  paymentDetails: {
+  methodDetails: {
     flex: 1,
   },
-  paymentName: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+  methodNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  paymentSubtext: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+  methodName: {
+    fontSize: 18,
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
+    marginRight: 12,
   },
   defaultBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ade8f4',
-    borderRadius: 12,
+    backgroundColor: '#f0f8ff',
     paddingHorizontal: 8,
     paddingVertical: 4,
+    borderRadius: 12,
     gap: 4,
   },
   defaultText: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#0077b6',
+    fontFamily: 'Inter-SemiBold',
+    color: '#3b8dba',
   },
-  paymentActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  actionButtonText: {
+  methodExpiryText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
-    color: '#0077b6',
+    color: '#3b8dba',
   },
-  removeText: {
-    color: '#023e8a',
-  },
-  addPaymentCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
+  deleteButton: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#ade8f4',
-    borderStyle: 'dashed',
-  },
-  addPaymentIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#ade8f4',
+    backgroundColor: '#ff6b6b',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
   },
-  addPaymentText: {
+  setDefaultButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#3b8dba',
+    gap: 8,
+  },
+  setDefaultText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#3b8dba',
+  },
+  addNewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    paddingVertical: 20,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#b1e0e7',
+    borderStyle: 'dashed',
+    gap: 8,
+    marginBottom: 32,
+  },
+  addNewText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#0077b6',
+    color: '#3b8dba',
   },
-  securityCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    borderRadius: 12,
-    padding: 16,
+  securitySection: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#ade8f4',
+    borderColor: '#b1e0e7',
+    marginBottom: 20,
   },
   securityTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
-    marginBottom: 8,
+    fontSize: 18,
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
+    marginBottom: 12,
   },
   securityText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: '#3b8dba',
     lineHeight: 20,
   },
-  billingCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ade8f4',
-  },
-  billingInfo: {
-    flex: 1,
-  },
-  billingTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
-    marginBottom: 4,
-  },
-  billingText: {
+  paypalIcon: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontFamily: 'Inter-Bold',
+    color: '#3b8dba',
   },
-  editText: {
+  applePayIcon: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#0077b6',
+    fontFamily: 'Inter-Bold',
+    color: '#3b8dba',
   },
 });

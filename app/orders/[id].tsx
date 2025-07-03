@@ -7,31 +7,35 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { ArrowLeft, MapPin, Clock, Star, Phone } from 'lucide-react-native';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ArrowLeft, Clock, MapPin, Phone, MessageCircle, Star, Package } from 'lucide-react-native';
 import { getUserOrders, type Order } from '@/lib/database';
+import { LinearGradient } from 'expo-linear-gradient';
 import { OrderTracking } from '@/components/ui/OrderTracking';
 
 export default function OrderDetailScreen() {
+  const { colors, isDark } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showTracking, setShowTracking] = useState(false);
 
   useEffect(() => {
     if (id) {
-      loadOrderDetails();
+      loadOrder();
     }
   }, [id]);
 
-  const loadOrderDetails = async () => {
+  const loadOrder = async () => {
     try {
       const orders = await getUserOrders();
       const orderData = orders.find(o => o.id === id);
       setOrder(orderData || null);
     } catch (error) {
-      console.error('Error loading order details:', error);
+      console.error('Error loading order:', error);
+      Alert.alert('Error', 'Failed to load order details');
     } finally {
       setLoading(false);
     }
@@ -40,15 +44,17 @@ export default function OrderDetailScreen() {
   const getStatusColor = (status: Order['status']) => {
     switch (status) {
       case 'delivered':
-        return '#48cae4';
+        return colors.primary;
       case 'cancelled':
-        return '#023e8a';
+        return '#ff6b6b';
       case 'pending':
       case 'confirmed':
       case 'preparing':
-        return '#0077b6';
+      case 'ready':
+      case 'picked_up':
+        return colors.primary;
       default:
-        return '#90e0ef';
+        return colors.accent;
     }
   };
 
@@ -59,7 +65,7 @@ export default function OrderDetailScreen() {
       case 'confirmed':
         return 'Confirmed';
       case 'preparing':
-        return 'Preparing';
+        return 'Preparing Your Order';
       case 'ready':
         return 'Ready for Pickup';
       case 'picked_up':
@@ -73,10 +79,42 @@ export default function OrderDetailScreen() {
     }
   };
 
+  const handleContactRestaurant = () => {
+    if (order?.restaurant?.phone) {
+      Alert.alert(
+        'Contact Restaurant',
+        `Call ${order.restaurant.name}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Call', onPress: () => {} }, // Would open phone dialer
+        ]
+      );
+    }
+  };
+
+  const handleOrderHelp = () => {
+    Alert.alert(
+      'Order Help',
+      'Choose how you\'d like to get help with this order:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Live Chat', onPress: () => {} },
+        { text: 'Call Support', onPress: () => {} },
+      ]
+    );
+  };
+
+  const styles = createStyles(colors, isDark);
+
+  // Gradient colors based on theme
+  const gradientColors = isDark 
+    ? ['#1a1a1a', '#2d2d2d'] as const // Dark ash colors
+    : [colors.primary, colors.primaryLight] as const; // Light theme
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0077b6" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading order details...</Text>
       </View>
     );
@@ -95,91 +133,109 @@ export default function OrderDetailScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft color="#0077b6" size={24} />
+      <LinearGradient
+        colors={gradientColors}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.headerBackButton} onPress={() => router.back()}>
+          <ArrowLeft color="#ffffff" size={24} />
         </TouchableOpacity>
-        <Text style={styles.title}>Order Details</Text>
-        <View style={{ width: 24 }} />
-      </View>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Order #{order.id.slice(-8)}</Text>
+          <Text style={styles.headerSubtitle}>{order.restaurant?.name}</Text>
+        </View>
+        <View style={styles.headerSpacer} />
+      </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Order Status */}
         <View style={styles.statusSection}>
-          <View style={styles.statusHeader}>
-            <Text style={styles.orderId}>Order #{order.id.slice(-8)}</Text>
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: getStatusColor(order.status) },
-              ]}
-            >
-              <Text style={styles.statusText}>{getStatusText(order.status)}</Text>
-            </View>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
+            <Text style={styles.statusText}>{getStatusText(order.status)}</Text>
           </View>
           
-          <Text style={styles.orderDate}>
-            Placed on {new Date(order.created_at).toLocaleDateString()} at{' '}
-            {new Date(order.created_at).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </Text>
-
-          {order.status !== 'delivered' && order.status !== 'cancelled' && (
-            <TouchableOpacity
-              style={styles.trackButton}
-              onPress={() => setShowTracking(true)}
-            >
-              <Text style={styles.trackButtonText}>Track Order</Text>
-            </TouchableOpacity>
+          {order.estimated_delivery_time && (
+            <View style={styles.timeInfo}>
+              <Clock color={colors.primary} size={20} />
+              <Text style={styles.timeText}>
+                Estimated: {new Date(order.estimated_delivery_time).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            </View>
           )}
         </View>
 
-        {/* Restaurant Info */}
-        {order.restaurant && (
-          <View style={styles.restaurantSection}>
-            <Text style={styles.sectionTitle}>Restaurant</Text>
-            <View style={styles.restaurantCard}>
-              <Image
-                source={{ uri: order.restaurant.image_url }}
-                style={styles.restaurantImage}
-              />
-              <View style={styles.restaurantInfo}>
-                <Text style={styles.restaurantName}>{order.restaurant.name}</Text>
-                <Text style={styles.restaurantCuisine}>{order.restaurant.cuisine_type}</Text>
-                <View style={styles.restaurantMeta}>
-                  <View style={styles.metaItem}>
-                    <Star color="#48cae4" size={14} fill="#48cae4" />
-                    <Text style={styles.metaText}>{order.restaurant.rating}</Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <MapPin color="#0077b6" size={14} />
-                    <Text style={styles.metaText}>{order.restaurant.address}</Text>
-                  </View>
-                </View>
-              </View>
-              <TouchableOpacity style={styles.phoneButton}>
-                <Phone color="#0077b6" size={20} />
-              </TouchableOpacity>
-            </View>
+        {/* Order Tracking */}
+        {order.status !== 'cancelled' && order.status !== 'delivered' && (
+          <View style={styles.trackingSection}>
+            <Text style={styles.trackingText}>Order tracking in progress...</Text>
           </View>
         )}
 
+        {/* Restaurant Info */}
+        <View style={styles.restaurantSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Restaurant</Text>
+          </View>
+          
+          <View style={styles.restaurantCard}>
+            <Image
+              source={{ uri: order.restaurant?.image_url }}
+              style={styles.restaurantImage}
+            />
+            <View style={styles.restaurantInfo}>
+              <Text style={styles.restaurantName}>{order.restaurant?.name}</Text>
+              <View style={styles.restaurantMeta}>
+                <View style={styles.metaItem}>
+                  <Star color={colors.primary} size={16} fill={colors.primary} />
+                  <Text style={styles.metaText}>{order.restaurant?.rating}</Text>
+                </View>
+                <View style={styles.metaItem}>
+                  <MapPin color={colors.primary} size={16} />
+                  <Text style={styles.metaText}>{order.restaurant?.address}</Text>
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.contactButton}
+              onPress={handleContactRestaurant}
+            >
+              <Phone color={colors.primary} size={20} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Order Items */}
         <View style={styles.itemsSection}>
-          <Text style={styles.sectionTitle}>Order Items</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Order Items</Text>
+            <Text style={styles.itemCount}>
+              {order.order_items?.length} item{order.order_items?.length !== 1 ? 's' : ''}
+            </Text>
+          </View>
+
           {order.order_items?.map((item) => (
             <View key={item.id} style={styles.orderItem}>
+              <Image
+                source={{ uri: item.menu_item?.image_url }}
+                style={styles.itemImage}
+              />
               <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.menu_item?.name}</Text>
                 <Text style={styles.itemDescription}>
                   {item.menu_item?.description}
                 </Text>
-                <Text style={styles.itemPrice}>
-                  ${item.unit_price.toFixed(2)} × {item.quantity}
-                </Text>
+                <View style={styles.itemMeta}>
+                  <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
+                  <Text style={styles.itemPrice}>${item.unit_price.toFixed(2)} each</Text>
+                </View>
+                {item.special_instructions && (
+                  <Text style={styles.specialInstructions}>
+                    Note: {item.special_instructions}
+                  </Text>
+                )}
               </View>
               <Text style={styles.itemTotal}>${item.total_price.toFixed(2)}</Text>
             </View>
@@ -188,183 +244,241 @@ export default function OrderDetailScreen() {
 
         {/* Order Summary */}
         <View style={styles.summarySection}>
-          <Text style={styles.sectionTitle}>Order Summary</Text>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>${order.subtotal.toFixed(2)}</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Order Summary</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Delivery Fee</Text>
-            <Text style={styles.summaryValue}>${order.delivery_fee.toFixed(2)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Service Fee</Text>
-            <Text style={styles.summaryValue}>${order.service_fee.toFixed(2)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Tax</Text>
-            <Text style={styles.summaryValue}>${order.tax.toFixed(2)}</Text>
-          </View>
-          {order.tip > 0 && (
+
+          <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Tip</Text>
-              <Text style={styles.summaryValue}>${order.tip.toFixed(2)}</Text>
+              <Text style={styles.summaryLabel}>Subtotal</Text>
+              <Text style={styles.summaryValue}>${order.subtotal.toFixed(2)}</Text>
             </View>
-          )}
-          <View style={styles.divider} />
-          <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>${order.total.toFixed(2)}</Text>
+            
+            {order.delivery_fee > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Delivery Fee</Text>
+                <Text style={styles.summaryValue}>${order.delivery_fee.toFixed(2)}</Text>
+              </View>
+            )}
+            
+            {order.service_fee > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Service Fee</Text>
+                <Text style={styles.summaryValue}>${order.service_fee.toFixed(2)}</Text>
+              </View>
+            )}
+            
+            {order.tax > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Tax</Text>
+                <Text style={styles.summaryValue}>${order.tax.toFixed(2)}</Text>
+              </View>
+            )}
+            
+            {order.tip > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Tip</Text>
+                <Text style={styles.summaryValue}>${order.tip.toFixed(2)}</Text>
+              </View>
+            )}
+
+            <View style={[styles.summaryRow, styles.totalRow]}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalValue}>${order.total.toFixed(2)}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Payment Method */}
-        <View style={styles.paymentSection}>
-          <Text style={styles.sectionTitle}>Payment Method</Text>
-          <Text style={styles.paymentMethod}>
-            {order.payment_method === 'card' ? 'Credit Card' : order.payment_method}
-          </Text>
+        {/* Special Instructions */}
+        {order.special_instructions && (
+          <View style={styles.instructionsSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Special Instructions</Text>
+            </View>
+            <View style={styles.instructionsCard}>
+              <Text style={styles.instructionsText}>{order.special_instructions}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Actions */}
+        <View style={styles.actionsSection}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleOrderHelp}>
+            <MessageCircle color={colors.primary} size={20} />
+            <Text style={styles.actionButtonText}>Get Help</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.primaryActionButton}
+            onPress={() => router.push(`/restaurant/${order.restaurant_id}`)}
+          >
+            <Package color="#ffffff" size={20} />
+            <Text style={styles.primaryActionButtonText}>Order Again</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
-
-      <OrderTracking
-        visible={showTracking}
-        onClose={() => setShowTracking(false)}
-        orderId={order.id}
-      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#caf0f8',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#caf0f8',
+    backgroundColor: colors.background,
   },
   loadingText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontFamily: 'Inter-Medium',
+    color: colors.text,
     marginTop: 12,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#caf0f8',
+    backgroundColor: colors.background,
     paddingHorizontal: 32,
   },
   errorText: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+    color: colors.text,
     marginBottom: 24,
+  },
+  backButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#ffffff',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#90e0ef',
   },
-  backButton: {
+  headerBackButton: {
     padding: 8,
   },
-  title: {
+  headerContent: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#ffffff',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#ffffff',
+    opacity: 0.9,
+    marginTop: 2,
+  },
+  headerSpacer: {
+    width: 40,
   },
   content: {
     flex: 1,
   },
   statusSection: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    marginBottom: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    alignItems: 'center',
   },
-  statusHeader: {
+  statusBadge: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  statusText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Bold',
+    color: '#ffffff',
+  },
+  timeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  timeText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: colors.primary,
+  },
+  trackingSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  trackingText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  restaurantSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  orderId: {
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
-    color: '#03045e',
-  },
-  statusBadge: {
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  statusText: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-  },
-  orderDate: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
     marginBottom: 16,
-  },
-  trackButton: {
-    backgroundColor: '#0077b6',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  trackButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-  },
-  restaurantSection: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
-    marginBottom: 16,
+    color: colors.text,
+  },
+  itemCount: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: colors.textSecondary,
   },
   restaurantCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 8,
+    elevation: 6,
   },
   restaurantImage: {
     width: 60,
     height: 60,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   restaurantInfo: {
     flex: 1,
     marginLeft: 12,
   },
   restaurantName: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
-    marginBottom: 4,
-  },
-  restaurantCuisine: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontSize: 18,
+    fontFamily: 'Inter-Bold',
+    color: colors.text,
     marginBottom: 8,
   },
   restaurantMeta: {
@@ -376,98 +490,197 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metaText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: colors.textSecondary,
   },
-  phoneButton: {
-    backgroundColor: '#ade8f4',
-    borderRadius: 20,
-    padding: 8,
+  contactButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.accentLight,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   itemsSection: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    marginBottom: 8,
+    paddingHorizontal: 20,
+    marginBottom: 24,
   },
   orderItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ade8f4',
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.2 : 0.05,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  itemImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
   },
   itemInfo: {
     flex: 1,
-    marginRight: 12,
+    marginLeft: 12,
   },
   itemName: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+    fontFamily: 'Inter-Bold',
+    color: colors.text,
     marginBottom: 4,
   },
   itemDescription: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  itemMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 4,
+  },
+  itemQuantity: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: colors.textSecondary,
   },
   itemPrice: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#90e0ef',
+    fontFamily: 'Inter-Medium',
+    color: colors.textSecondary,
   },
   itemTotal: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: colors.text,
+    alignSelf: 'center',
+  },
+  specialInstructions: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   summarySection: {
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  summaryCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
     padding: 20,
-    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 8,
+    elevation: 6,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    paddingVertical: 8,
   },
   summaryLabel: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: colors.textSecondary,
   },
   summaryValue: {
     fontSize: 16,
     fontFamily: 'Inter-Medium',
-    color: '#03045e',
+    color: colors.text,
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#90e0ef',
-    marginVertical: 12,
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginTop: 8,
+    paddingTop: 16,
   },
   totalLabel: {
     fontSize: 18,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: colors.text,
   },
   totalValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: colors.text,
   },
-  paymentSection: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    marginBottom: 20,
+  instructionsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
   },
-  paymentMethod: {
+  instructionsCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.2 : 0.05,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  instructionsText: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#03045e',
+    color: colors.textSecondary,
+    lineHeight: 22,
+  },
+  actionsSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+    gap: 12,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 8,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.2 : 0.05,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: colors.primary,
+  },
+  primaryActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.4 : 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  primaryActionButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#ffffff',
   },
 });

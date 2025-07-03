@@ -10,6 +10,7 @@ import {
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { QrCode, Camera, FlashlightOff, Flashlight } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { getRestaurantById, getTableByNumber } from '@/lib/database';
 
 interface TableQRData {
@@ -62,6 +63,14 @@ export default function ScannerScreen() {
       return () => clearTimeout(timer);
     }
   }, [scanCooldown]);
+
+  // Reset scanner state when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('Scanner screen focused - resetting state');
+      resetScannerState();
+    }, [])
+  );
 
   if (!permission) {
     return (
@@ -369,7 +378,7 @@ export default function ScannerScreen() {
 
       {/* Instructions Overlay */}
       <View style={styles.instructionsOverlay}>
-        <Text style={styles.instructionText}>
+        <Text style={styles.instructionsText}>
           {navigatingRef.current
             ? 'Opening restaurant menu...'
             : isProcessing
@@ -383,6 +392,13 @@ export default function ScannerScreen() {
             : 'Scan the QR code on your restaurant table to start ordering'
           }
         </Text>
+      </View>
+
+      {/* Bottom Actions */}
+      <View style={styles.bottomActions}>
+        <TouchableOpacity style={styles.manualEntryButton} onPress={resetScanner}>
+          <Text style={styles.manualEntryText}>Manual Entry</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -398,12 +414,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
-    backgroundColor: '#caf0f8',
+    backgroundColor: '#f0f8ff',
   },
   permissionTitle: {
     fontSize: 24,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#3b8dba',
     marginTop: 24,
     marginBottom: 16,
     textAlign: 'center',
@@ -411,16 +427,21 @@ const styles = StyleSheet.create({
   permissionText: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: '#3b8dba',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
   },
   permissionButton: {
-    backgroundColor: '#0077b6',
+    backgroundColor: '#3b8dba',
     paddingHorizontal: 32,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   permissionButtonText: {
     fontSize: 16,
@@ -432,28 +453,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
-    backgroundColor: '#caf0f8',
+    backgroundColor: '#f0f8ff',
   },
   webTitle: {
     fontSize: 28,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#3b8dba',
     marginTop: 24,
     marginBottom: 16,
   },
   webText: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: '#a2c7e7',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
   },
   webButton: {
-    backgroundColor: '#0077b6',
+    backgroundColor: '#3b8dba',
     paddingHorizontal: 32,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   webButtonText: {
     fontSize: 16,
@@ -469,7 +495,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(59, 141, 186, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
@@ -478,6 +504,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
+    marginTop: 12,
   },
   headerOverlay: {
     position: 'absolute',
@@ -488,13 +515,14 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textAlign: 'center',
+    backgroundColor: 'rgba(59, 141, 186, 0.8)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
   headerSubtitle: {
     fontSize: 16,
@@ -530,7 +558,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 30,
     height: 30,
-    borderColor: '#48cae4',
+    borderColor: '#b1e0e7',
     borderWidth: 4,
   },
   topLeft: {
@@ -609,20 +637,45 @@ const styles = StyleSheet.create({
   },
   instructionsOverlay: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 100,
     left: 20,
     right: 20,
     alignItems: 'center',
     zIndex: 1,
   },
-  instructionText: {
+  instructionsText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Inter-Medium',
     color: '#FFFFFF',
     textAlign: 'center',
-    opacity: 0.9,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    backgroundColor: 'rgba(59, 141, 186, 0.8)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  bottomActions: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  manualEntryButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  manualEntryText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#3b8dba',
   },
 });

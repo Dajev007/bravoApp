@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useCart } from '@/contexts/CartContext';
 import { Minus, Plus, Trash2, ShoppingBag, CreditCard } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { OrderTracking } from '@/components/ui/OrderTracking';
 import { createOrder } from '@/lib/database';
 
@@ -32,12 +34,15 @@ export default function CartScreen() {
   if (items.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <LinearGradient
+          colors={['#3b8dba', '#a2c7e7']}
+          style={styles.header}
+        >
           <Text style={styles.title}>Your Cart</Text>
-        </View>
+        </LinearGradient>
         
         <View style={styles.emptyContainer}>
-          <ShoppingBag color="#90e0ef" size={80} />
+          <ShoppingBag color="#b1e0e7" size={80} />
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
           <Text style={styles.emptyText}>
             Add some delicious items from our restaurants to get started!
@@ -87,7 +92,10 @@ export default function CartScreen() {
       };
 
       // Create the order
-      const order = await createOrder(orderData);
+      const order = await createOrder({
+        ...orderData,
+        table_id: orderData.table_id || undefined
+      });
       
       // Clear cart and show tracking
       const newOrderId = order.id;
@@ -118,12 +126,17 @@ export default function CartScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Your Cart</Text>
-        <TouchableOpacity onPress={clearCart} style={styles.clearButton}>
-          <Text style={styles.clearButtonText}>Clear All</Text>
-        </TouchableOpacity>
-      </View>
+      <LinearGradient
+        colors={['#3b8dba', '#a2c7e7']}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>Your Cart</Text>
+          <TouchableOpacity onPress={clearCart} style={styles.clearButton}>
+            <Text style={styles.clearButtonText}>Clear All</Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
 
       {/* Order Type Info */}
       {orderType && (
@@ -155,7 +168,7 @@ export default function CartScreen() {
                   style={styles.quantityButton}
                   onPress={() => updateQuantity(item.id, item.quantity - 1)}
                 >
-                  <Minus color="#0077b6" size={16} />
+                  <Minus color="#3b8dba" size={16} />
                 </TouchableOpacity>
                 
                 <Text style={styles.quantity}>{item.quantity}</Text>
@@ -164,7 +177,7 @@ export default function CartScreen() {
                   style={styles.quantityButton}
                   onPress={() => updateQuantity(item.id, item.quantity + 1)}
                 >
-                  <Plus color="#0077b6" size={16} />
+                  <Plus color="#3b8dba" size={16} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -177,7 +190,7 @@ export default function CartScreen() {
                 style={styles.removeButton}
                 onPress={() => removeItem(item.id)}
               >
-                <Trash2 color="#023e8a" size={20} />
+                <Trash2 color="#3b8dba" size={20} />
               </TouchableOpacity>
             </View>
           </View>
@@ -208,32 +221,36 @@ export default function CartScreen() {
           <Text style={styles.summaryValue}>${tax.toFixed(2)}</Text>
         </View>
         
-        <View style={styles.divider} />
-        
-        <View style={styles.summaryRow}>
+        <View style={[styles.summaryRow, styles.totalRow]}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>
-            ${finalTotal.toFixed(2)}
-          </Text>
+          <Text style={styles.totalValue}>${finalTotal.toFixed(2)}</Text>
         </View>
         
-        <TouchableOpacity 
-          style={[styles.checkoutButton, isProcessing && styles.checkoutButtonDisabled]} 
+        <TouchableOpacity
+          style={[styles.checkoutButton, isProcessing && styles.disabledButton]}
           onPress={handleCheckout}
           disabled={isProcessing}
         >
-          <CreditCard color="#FFFFFF" size={20} />
-          <Text style={styles.checkoutButtonText}>
-            {isProcessing ? 'Processing...' : 'Place Order'}
-          </Text>
+          {isProcessing ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <CreditCard color="#FFFFFF" size={20} />
+              <Text style={styles.checkoutText}>
+                Checkout - ${finalTotal.toFixed(2)}
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
 
-      <OrderTracking
-        visible={showTracking}
-        onClose={() => setShowTracking(false)}
-        orderId={orderId}
-      />
+      {showTracking && orderId && (
+        <OrderTracking 
+          visible={showTracking}
+          orderId={orderId} 
+          onClose={() => setShowTracking(false)} 
+        />
+      )}
     </View>
   );
 }
@@ -241,64 +258,75 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#caf0f8',
+    backgroundColor: '#f0f8ff',
   },
   header: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#90e0ef',
   },
   title: {
     fontSize: 28,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(59, 141, 186, 0.4)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   clearButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: '#ade8f4',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   clearButtonText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
-    color: '#0077b6',
+    color: '#FFFFFF',
   },
   orderTypeInfo: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
+    marginHorizontal: 20,
+    marginVertical: 16,
+    borderRadius: 12,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ade8f4',
+    paddingHorizontal: 16,
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    alignItems: 'center',
   },
   orderTypeText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+    fontFamily: 'Inter-Medium',
+    color: '#3b8dba',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 40,
   },
   emptyTitle: {
     fontSize: 24,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#3b8dba',
     marginTop: 24,
     marginBottom: 12,
   },
   emptyText: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: '#a2c7e7',
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -309,42 +337,41 @@ const styles = StyleSheet.create({
   cartItem: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#0077b6',
+    shadowColor: '#3b8dba',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#ade8f4',
+    elevation: 2,
   },
   itemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    marginRight: 12,
   },
   itemInfo: {
     flex: 1,
-    marginLeft: 12,
+    justifyContent: 'space-between',
   },
   itemName: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+    fontFamily: 'Inter-Bold',
+    color: '#3b8dba',
     marginBottom: 4,
   },
   restaurantName: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#90e0ef',
-    marginBottom: 4,
+    color: '#a2c7e7',
+    marginBottom: 8,
   },
   itemPrice: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    fontFamily: 'Inter-Medium',
+    color: '#3b8dba',
     marginBottom: 8,
   },
   quantityContainer: {
@@ -353,15 +380,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   quantityButton: {
-    backgroundColor: '#ade8f4',
-    borderRadius: 6,
+    backgroundColor: '#f0f8ff',
+    borderRadius: 8,
     padding: 8,
+    borderWidth: 1,
+    borderColor: '#b1e0e7',
   },
   quantity: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
-    minWidth: 20,
+    fontFamily: 'Inter-Bold',
+    color: '#3b8dba',
+    minWidth: 24,
     textAlign: 'center',
   },
   itemActions: {
@@ -369,19 +398,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   itemTotal: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#3b8dba',
+    marginBottom: 12,
   },
   removeButton: {
+    backgroundColor: '#f0f8ff',
+    borderRadius: 8,
     padding: 8,
+    borderWidth: 1,
+    borderColor: '#b1e0e7',
   },
   summary: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#90e0ef',
+    margin: 20,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -392,49 +430,50 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: '#3b8dba',
   },
   summaryValue: {
     fontSize: 16,
     fontFamily: 'Inter-Medium',
-    color: '#03045e',
+    color: '#3b8dba',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#90e0ef',
-    marginVertical: 12,
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#b1e0e7',
+    paddingTop: 12,
+    marginBottom: 20,
   },
   totalLabel: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#3b8dba',
   },
   totalValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#3b8dba',
   },
   checkoutButton: {
-    backgroundColor: '#0077b6',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: '#3b8dba',
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
-    shadowColor: '#000',
+    justifyContent: 'center',
+    gap: 12,
+    shadowColor: '#3b8dba',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 8,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
+    elevation: 4,
   },
-  checkoutButtonDisabled: {
+  disabledButton: {
     opacity: 0.7,
   },
-  checkoutButtonText: {
+  checkoutText: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
   },
 });

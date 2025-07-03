@@ -8,13 +8,23 @@ import {
   Switch,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, Bell, Shield, Eye, Globe, Smartphone } from 'lucide-react-native';
+import { useTheme } from '@/contexts/ThemeContext';
+import {
+  ArrowLeft,
+  Bell,
+  Shield,
+  Eye,
+  Smartphone,
+  Globe,
+} from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function SettingsScreen() {
+  const { colors, isDark } = useTheme();
   const [notifications, setNotifications] = useState({
     orderUpdates: true,
-    promotions: false,
-    newRestaurants: true,
+    promotions: true,
+    newRestaurants: false,
     emailMarketing: false,
     pushNotifications: true,
   });
@@ -26,29 +36,45 @@ export default function SettingsScreen() {
   });
 
   const toggleNotification = (key: keyof typeof notifications) => {
-    setNotifications(prev => ({ ...prev, [key]: !prev[key] }));
+    setNotifications(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
 
   const togglePrivacy = (key: keyof typeof privacy) => {
-    setPrivacy(prev => ({ ...prev, [key]: !prev[key] }));
+    setPrivacy(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
+
+  const styles = createStyles(colors, isDark);
+
+  // Gradient colors based on theme
+  const gradientColors = isDark 
+    ? ['#1a1a1a', '#2d2d2d'] as const // Dark ash colors
+    : [colors.primary, colors.primaryLight] as const; // Light theme
 
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={gradientColors}
+        style={styles.header}
+      >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft color="#0077b6" size={24} />
+          <ArrowLeft color="#ffffff" size={24} />
         </TouchableOpacity>
         <Text style={styles.title}>Settings</Text>
         <View style={{ width: 24 }} />
-      </View>
+      </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Notifications */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Bell color="#0077b6" size={20} />
+            <Bell color={colors.primary} size={20} />
             <Text style={styles.sectionTitle}>Notifications</Text>
           </View>
           
@@ -62,8 +88,8 @@ export default function SettingsScreen() {
             <Switch
               value={notifications.orderUpdates}
               onValueChange={() => toggleNotification('orderUpdates')}
-              trackColor={{ false: '#90e0ef', true: '#0077b6' }}
-              thumbColor={notifications.orderUpdates ? '#48cae4' : '#FFFFFF'}
+              trackColor={{ false: colors.accent, true: colors.primary }}
+              thumbColor={notifications.orderUpdates ? colors.primaryLight : '#FFFFFF'}
             />
           </View>
 
@@ -77,8 +103,8 @@ export default function SettingsScreen() {
             <Switch
               value={notifications.promotions}
               onValueChange={() => toggleNotification('promotions')}
-              trackColor={{ false: '#90e0ef', true: '#0077b6' }}
-              thumbColor={notifications.promotions ? '#48cae4' : '#FFFFFF'}
+              trackColor={{ false: colors.accent, true: colors.primary }}
+              thumbColor={notifications.promotions ? colors.primaryLight : '#FFFFFF'}
             />
           </View>
 
@@ -92,8 +118,8 @@ export default function SettingsScreen() {
             <Switch
               value={notifications.newRestaurants}
               onValueChange={() => toggleNotification('newRestaurants')}
-              trackColor={{ false: '#90e0ef', true: '#0077b6' }}
-              thumbColor={notifications.newRestaurants ? '#48cae4' : '#FFFFFF'}
+              trackColor={{ false: colors.accent, true: colors.primary }}
+              thumbColor={notifications.newRestaurants ? colors.primaryLight : '#FFFFFF'}
             />
           </View>
 
@@ -107,8 +133,8 @@ export default function SettingsScreen() {
             <Switch
               value={notifications.emailMarketing}
               onValueChange={() => toggleNotification('emailMarketing')}
-              trackColor={{ false: '#90e0ef', true: '#0077b6' }}
-              thumbColor={notifications.emailMarketing ? '#48cae4' : '#FFFFFF'}
+              trackColor={{ false: colors.accent, true: colors.primary }}
+              thumbColor={notifications.emailMarketing ? colors.primaryLight : '#FFFFFF'}
             />
           </View>
 
@@ -122,8 +148,8 @@ export default function SettingsScreen() {
             <Switch
               value={notifications.pushNotifications}
               onValueChange={() => toggleNotification('pushNotifications')}
-              trackColor={{ false: '#90e0ef', true: '#0077b6' }}
-              thumbColor={notifications.pushNotifications ? '#48cae4' : '#FFFFFF'}
+              trackColor={{ false: colors.accent, true: colors.primary }}
+              thumbColor={notifications.pushNotifications ? colors.primaryLight : '#FFFFFF'}
             />
           </View>
         </View>
@@ -131,7 +157,7 @@ export default function SettingsScreen() {
         {/* Privacy & Security */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Shield color="#0077b6" size={20} />
+            <Shield color={colors.primary} size={20} />
             <Text style={styles.sectionTitle}>Privacy & Security</Text>
           </View>
           
@@ -145,8 +171,8 @@ export default function SettingsScreen() {
             <Switch
               value={privacy.locationTracking}
               onValueChange={() => togglePrivacy('locationTracking')}
-              trackColor={{ false: '#90e0ef', true: '#0077b6' }}
-              thumbColor={privacy.locationTracking ? '#48cae4' : '#FFFFFF'}
+              trackColor={{ false: colors.accent, true: colors.primary }}
+              thumbColor={privacy.locationTracking ? colors.primaryLight : '#FFFFFF'}
             />
           </View>
 
@@ -160,8 +186,8 @@ export default function SettingsScreen() {
             <Switch
               value={privacy.dataSharing}
               onValueChange={() => togglePrivacy('dataSharing')}
-              trackColor={{ false: '#90e0ef', true: '#0077b6' }}
-              thumbColor={privacy.dataSharing ? '#48cae4' : '#FFFFFF'}
+              trackColor={{ false: colors.accent, true: colors.primary }}
+              thumbColor={privacy.dataSharing ? colors.primaryLight : '#FFFFFF'}
             />
           </View>
 
@@ -175,18 +201,18 @@ export default function SettingsScreen() {
             <Switch
               value={privacy.analytics}
               onValueChange={() => togglePrivacy('analytics')}
-              trackColor={{ false: '#90e0ef', true: '#0077b6' }}
-              thumbColor={privacy.analytics ? '#48cae4' : '#FFFFFF'}
+              trackColor={{ false: colors.accent, true: colors.primary }}
+              thumbColor={privacy.analytics ? colors.primaryLight : '#FFFFFF'}
             />
           </View>
 
           <TouchableOpacity style={styles.linkItem}>
-            <Eye color="#0077b6" size={20} />
+            <Eye color={colors.primary} size={20} />
             <Text style={styles.linkText}>Privacy Policy</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.linkItem}>
-            <Shield color="#0077b6" size={20} />
+            <Shield color={colors.primary} size={20} />
             <Text style={styles.linkText}>Terms of Service</Text>
           </TouchableOpacity>
         </View>
@@ -194,12 +220,12 @@ export default function SettingsScreen() {
         {/* App Preferences */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Smartphone color="#0077b6" size={20} />
+            <Smartphone color={colors.primary} size={20} />
             <Text style={styles.sectionTitle}>App Preferences</Text>
           </View>
 
           <TouchableOpacity style={styles.linkItem}>
-            <Globe color="#0077b6" size={20} />
+            <Globe color={colors.primary} size={20} />
             <View style={styles.linkInfo}>
               <Text style={styles.linkText}>Language</Text>
               <Text style={styles.linkSubtext}>English</Text>
@@ -237,10 +263,10 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#caf0f8',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -249,9 +275,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#90e0ef',
   },
   backButton: {
     padding: 8,
@@ -259,15 +282,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#ffffff',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   content: {
     flex: 1,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     marginBottom: 8,
     paddingVertical: 20,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -279,7 +312,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: colors.text,
   },
   settingItem: {
     flexDirection: 'row',
@@ -295,13 +328,13 @@ const styles = StyleSheet.create({
   settingName: {
     fontSize: 16,
     fontFamily: 'Inter-Medium',
-    color: '#03045e',
+    color: colors.text,
     marginBottom: 4,
   },
   settingDescription: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: colors.textSecondary,
   },
   linkItem: {
     flexDirection: 'row',
@@ -321,12 +354,12 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 16,
     fontFamily: 'Inter-Medium',
-    color: '#03045e',
+    color: colors.text,
   },
   linkSubtext: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   dangerItem: {
@@ -336,12 +369,12 @@ const styles = StyleSheet.create({
   dangerText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#023e8a',
+    color: isDark ? '#ff6b6b' : '#d32f2f',
     marginBottom: 4,
   },
   dangerSubtext: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: colors.textSecondary,
   },
 });

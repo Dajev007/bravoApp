@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
-  RefreshControl
+  RefreshControl,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -25,9 +27,23 @@ import {
   BellIcon,
   CheckCircleIcon,
   XCircleIcon,
-  TrendingUpIcon
+  TrendingUpIcon,
+  DollarSign,
+  ShoppingBag,
+  TrendingUp,
+  Clock,
+  Star,
+  Calendar,
+  ChevronRight,
+  BarChart3,
+  AlertCircle,
+  Settings,
+  LogOut,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
@@ -37,6 +53,11 @@ interface DashboardStats {
   totalOrders: number;
   pendingRequests: number;
   recentOrders: any[];
+  totalRevenue: number;
+  newCustomers: number;
+  averageRating: number;
+  todayOrders: number;
+  todayRevenue: number;
 }
 
 export default function AdminDashboard() {
@@ -47,6 +68,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const { user, signOut } = useAuth();
+  const { colors, isDark } = useTheme();
 
   const fetchDashboardData = async () => {
     if (!restaurantId) return;
@@ -63,6 +86,7 @@ export default function AdminDashboard() {
       setOrderRequests(pendingRequests);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      Alert.alert('Error', 'Failed to load dashboard data');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -97,10 +121,29 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+            router.replace('/');
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <LoadingSpinner />
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading dashboard...</Text>
       </View>
     );
   }
@@ -110,230 +153,224 @@ export default function AdminDashboard() {
   const todayCustomers = stats?.todayStats?.customer_count || 0;
   const avgOrderValue = stats?.todayStats?.avg_order_value || 0;
 
+  // Gradient colors based on theme
+  const gradientColors = isDark 
+    ? ['#1a1a1a', '#2d2d2d'] as const // Dark ash colors
+    : [colors.primary, colors.primaryLight] as const; // Light theme
+
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.welcomeText}>Welcome back!</Text>
-          <Text style={styles.restaurantName}>
-            {adminData?.restaurant?.name || 'Restaurant Admin'}
-          </Text>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={gradientColors}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>Welcome back,</Text>
+            <Text style={styles.adminName}>{adminData?.restaurant?.name || 'Admin'}</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.notificationButton} onPress={() => router.push('/admin/requests')}>
+              <BellIcon size={24} color="#ffffff" />
+              {orderRequests.length > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {orderRequests.length}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.settingsButton} onPress={() => router.push('/admin/settings')}>
+              <Settings color="#ffffff" size={24} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
+              <LogOut color="#ffffff" size={24} />
+            </TouchableOpacity>
+          </View>
         </View>
-        <TouchableOpacity 
-          style={styles.notificationButton}
-          onPress={() => router.push('/admin/requests')}
-        >
-          <BellIcon size={24} color="#64748b" />
-          {orderRequests.length > 0 && (
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>
-                {orderRequests.length}
-              </Text>
+      </LinearGradient>
+
+      <ScrollView 
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Today's Overview */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Today's Overview</Text>
+          <View style={styles.todayStatsGrid}>
+            <View style={styles.todayStatCard}>
+              <View style={styles.statIcon}>
+                <ShoppingBagIcon size={24} color={colors.primary} />
+              </View>
+              <Text style={styles.statValue}>{todayOrders}</Text>
+              <Text style={styles.statLabel}>Orders</Text>
             </View>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Stats Cards */}
-      <View style={styles.statsGrid}>
-        <View style={[styles.statCard, styles.revenueCard]}>
-          <View style={styles.statCardHeader}>
-            <DollarSignIcon size={24} color="#10b981" />
-            <Text style={styles.statCardTitle}>Today's Revenue</Text>
-          </View>
-          <Text style={styles.statCardValue}>${todayRevenue.toFixed(2)}</Text>
-          <View style={styles.statCardChange}>
-            <TrendingUpIcon size={16} color="#10b981" />
-            <Text style={styles.changeText}>+12% from yesterday</Text>
+            <View style={styles.todayStatCard}>
+              <View style={styles.statIcon}>
+                <DollarSignIcon size={24} color={colors.primary} />
+              </View>
+              <Text style={styles.statValue}>${todayRevenue.toFixed(2)}</Text>
+              <Text style={styles.statLabel}>Revenue</Text>
+            </View>
           </View>
         </View>
 
-        <View style={[styles.statCard, styles.ordersCard]}>
-          <View style={styles.statCardHeader}>
-            <ShoppingBagIcon size={24} color="#3b82f6" />
-            <Text style={styles.statCardTitle}>Orders Today</Text>
-          </View>
-          <Text style={styles.statCardValue}>{todayOrders}</Text>
-          <View style={styles.statCardChange}>
-            <TrendingUpIcon size={16} color="#3b82f6" />
-            <Text style={styles.changeText}>+5% from yesterday</Text>
+        {/* Key Metrics */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Key Metrics</Text>
+          <View style={styles.metricsGrid}>
+            <View style={styles.metricCard}>
+              <View style={styles.metricIcon}>
+                <ShoppingBagIcon size={20} color={colors.primary} />
+              </View>
+              <Text style={styles.metricValue}>{stats?.totalOrders || 0}</Text>
+              <Text style={styles.metricLabel}>Total Orders</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <View style={styles.metricIcon}>
+                <DollarSignIcon size={20} color={colors.primary} />
+              </View>
+              <Text style={styles.metricValue}>${(stats?.totalRevenue || 0).toLocaleString()}</Text>
+              <Text style={styles.metricLabel}>Total Revenue</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <View style={styles.metricIcon}>
+                <UsersIcon size={20} color={colors.primary} />
+              </View>
+              <Text style={styles.metricValue}>{todayCustomers}</Text>
+              <Text style={styles.metricLabel}>New Customers</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <View style={styles.metricIcon}>
+                <Star size={20} color={colors.primary} />
+              </View>
+              <Text style={styles.metricValue}>{stats?.averageRating || 0}</Text>
+              <Text style={styles.metricLabel}>Average Rating</Text>
+            </View>
           </View>
         </View>
 
-        <View style={[styles.statCard, styles.customersCard]}>
-          <View style={styles.statCardHeader}>
-            <UsersIcon size={24} color="#f59e0b" />
-            <Text style={styles.statCardTitle}>Customers</Text>
-          </View>
-          <Text style={styles.statCardValue}>{todayCustomers}</Text>
-          <View style={styles.statCardChange}>
-            <TrendingUpIcon size={16} color="#f59e0b" />
-            <Text style={styles.changeText}>+8% from yesterday</Text>
+        {/* Order Status */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Order Status</Text>
+          <View style={styles.orderStatusGrid}>
+            <View style={[styles.orderStatusCard, { borderLeftColor: '#ff6b6b' }]}>
+              <View style={styles.orderStatusHeader}>
+                <AlertCircle size={20} color="#ff6b6b" />
+                <Text style={styles.orderStatusValue}>{stats?.pendingRequests || 0}</Text>
+              </View>
+              <Text style={styles.orderStatusLabel}>Pending Orders</Text>
+            </View>
+            <View style={[styles.orderStatusCard, { borderLeftColor: colors.primary }]}>
+              <View style={styles.orderStatusHeader}>
+                <Clock size={20} color={colors.primary} />
+                <Text style={styles.orderStatusValue}>{stats?.recentOrders.length || 0}</Text>
+              </View>
+              <Text style={styles.orderStatusLabel}>Completed Today</Text>
+            </View>
           </View>
         </View>
 
-        <View style={[styles.statCard, styles.avgOrderCard]}>
-          <View style={styles.statCardHeader}>
-            <ClockIcon size={24} color="#8b5cf6" />
-            <Text style={styles.statCardTitle}>Avg Order Value</Text>
-          </View>
-          <Text style={styles.statCardValue}>${avgOrderValue.toFixed(2)}</Text>
-          <View style={styles.statCardChange}>
-            <TrendingUpIcon size={16} color="#8b5cf6" />
-            <Text style={styles.changeText}>+3% from yesterday</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Quick Actions */}
-      <View style={styles.quickActionsContainer}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.quickActionsGrid}>
-          <TouchableOpacity 
-            style={styles.quickActionButton}
-            onPress={() => router.push('/admin/menu')}
-          >
-            <Text style={styles.quickActionTitle}>Manage Menu</Text>
-            <Text style={styles.quickActionSubtitle}>Add or edit menu items</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickActionButton}
-            onPress={() => router.push('/admin/tables')}
-          >
-            <Text style={styles.quickActionTitle}>Configure Tables</Text>
-            <Text style={styles.quickActionSubtitle}>Manage restaurant tables</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickActionButton}
-            onPress={() => router.push('/admin/orders')}
-          >
-            <Text style={styles.quickActionTitle}>View Orders</Text>
-            <Text style={styles.quickActionSubtitle}>Track active orders</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickActionButton}
-            onPress={() => router.push('/admin/analytics')}
-          >
-            <Text style={styles.quickActionTitle}>View Analytics</Text>
-            <Text style={styles.quickActionSubtitle}>Restaurant insights</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Pending Requests */}
-      {orderRequests.length > 0 && (
+        {/* Recent Orders */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Pending Requests</Text>
-            <TouchableOpacity onPress={() => router.push('/admin/requests')}>
+            <Text style={styles.sectionTitle}>Recent Orders</Text>
+            <TouchableOpacity onPress={() => router.push('/admin/orders')}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
           
-          {orderRequests.slice(0, 3).map((request) => (
-            <View key={request.id} style={styles.requestCard}>
-              <View style={styles.requestHeader}>
-                <Text style={styles.requestCustomer}>{request.customer_name}</Text>
-                <Text style={styles.requestType}>
-                  {request.order_type === 'dine_in' ? 'Dine In' : 'Takeaway'}
-                </Text>
+          {stats?.recentOrders.slice(0, 5).map((order) => (
+            <View key={order.id} style={styles.orderCard}>
+              <View style={styles.orderHeader}>
+                <Text style={styles.orderNumber}>Order #{order.id.slice(-8)}</Text>
+                <View style={[styles.orderStatus, getStatusStyle(order.status)]}>
+                  <Text style={[styles.orderStatusText, getStatusTextStyle(order.status)]}>
+                    {order.status.replace('_', ' ').toUpperCase()}
+                  </Text>
+                </View>
               </View>
               
-              <Text style={styles.requestDetails}>
-                {request.order_type === 'dine_in' 
-                  ? `Table for ${request.guest_count} guests`
-                  : 'Takeaway order'
-                }
+              <Text style={styles.orderDetails}>
+                {order.order_type === 'dine_in' ? 'Dine In' : 
+                 order.order_type === 'takeaway' ? 'Takeaway' : 'Delivery'}
+                {order.table?.table_number && ` • Table ${order.table.table_number}`}
               </Text>
               
-              <Text style={styles.requestTime}>
-                {new Date(request.created_at).toLocaleTimeString()}
-              </Text>
-              
-              <View style={styles.requestActions}>
-                <TouchableOpacity style={styles.approveButton}>
-                  <CheckCircleIcon size={16} color="#10b981" />
-                  <Text style={styles.approveButtonText}>Approve</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.rejectButton}>
-                  <XCircleIcon size={16} color="#ef4444" />
-                  <Text style={styles.rejectButtonText}>Reject</Text>
-                </TouchableOpacity>
+              <View style={styles.orderFooter}>
+                <Text style={styles.orderTotal}>${order.total.toFixed(2)}</Text>
+                <Text style={styles.orderTime}>
+                  {new Date(order.created_at).toLocaleTimeString()}
+                </Text>
               </View>
             </View>
           ))}
         </View>
-      )}
 
-      {/* Recent Orders */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Orders</Text>
-          <TouchableOpacity onPress={() => router.push('/admin/orders')}>
-            <Text style={styles.viewAllText}>View All</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {stats?.recentOrders.slice(0, 5).map((order) => (
-          <View key={order.id} style={styles.orderCard}>
-            <View style={styles.orderHeader}>
-              <Text style={styles.orderNumber}>Order #{order.id.slice(-8)}</Text>
-              <View style={[styles.orderStatus, getStatusStyle(order.status)]}>
-                <Text style={[styles.orderStatusText, getStatusTextStyle(order.status)]}>
-                  {order.status.replace('_', ' ').toUpperCase()}
+        {/* Recent Notifications */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          
+          {notifications.slice(0, 5).map((notification) => (
+            <TouchableOpacity 
+              key={notification.id}
+              style={[styles.notificationCard, !notification.is_read && styles.unreadNotification]}
+              onPress={() => handleNotificationPress(notification)}
+            >
+              <View style={styles.notificationContent}>
+                <Text style={styles.notificationTitle}>{notification.title}</Text>
+                <Text style={styles.notificationMessage}>{notification.message}</Text>
+                <Text style={styles.notificationTime}>
+                  {new Date(notification.created_at).toLocaleString()}
                 </Text>
               </View>
-            </View>
-            
-            <Text style={styles.orderDetails}>
-              {order.order_type === 'dine_in' ? 'Dine In' : 
-               order.order_type === 'takeaway' ? 'Takeaway' : 'Delivery'}
-              {order.table?.table_number && ` • Table ${order.table.table_number}`}
-            </Text>
-            
-            <View style={styles.orderFooter}>
-              <Text style={styles.orderTotal}>${order.total.toFixed(2)}</Text>
-              <Text style={styles.orderTime}>
-                {new Date(order.created_at).toLocaleTimeString()}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </View>
+              
+              {!notification.is_read && <View style={styles.unreadDot} />}
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      {/* Recent Notifications */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
-        
-        {notifications.slice(0, 5).map((notification) => (
-          <TouchableOpacity 
-            key={notification.id}
-            style={[styles.notificationCard, !notification.is_read && styles.unreadNotification]}
-            onPress={() => handleNotificationPress(notification)}
-          >
-            <View style={styles.notificationContent}>
-              <Text style={styles.notificationTitle}>{notification.title}</Text>
-              <Text style={styles.notificationMessage}>{notification.message}</Text>
-              <Text style={styles.notificationTime}>
-                {new Date(notification.created_at).toLocaleString()}
-              </Text>
-            </View>
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActionsGrid}>
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => router.push('/admin/menu')}
+            >
+              <Text style={styles.quickActionTitle}>Manage Menu</Text>
+              <Text style={styles.quickActionSubtitle}>Add or edit menu items</Text>
+            </TouchableOpacity>
             
-            {!notification.is_read && <View style={styles.unreadDot} />}
-          </TouchableOpacity>
-        ))}
-      </View>
-    </ScrollView>
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => router.push('/admin/tables')}
+            >
+              <Text style={styles.quickActionTitle}>Configure Tables</Text>
+              <Text style={styles.quickActionSubtitle}>Manage restaurant tables</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => router.push('/admin/orders')}
+            >
+              <Text style={styles.quickActionTitle}>View Orders</Text>
+              <Text style={styles.quickActionSubtitle}>Track active orders</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => router.push('/admin/orders')}
+            >
+              <Text style={styles.quickActionTitle}>View Analytics</Text>
+              <Text style={styles.quickActionSubtitle}>Restaurant insights</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -376,305 +413,324 @@ const getStatusTextStyle = (status: string) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f0f8ff',
   },
   
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f0f8ff',
   },
   
-  // Header
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#1e3a8a',
+    marginTop: 12,
+  },
+  
   header: {
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+  },
+  
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
   },
-  welcomeText: {
+  
+  headerLeft: {
+    flex: 1,
+  },
+  
+  greeting: {
     fontSize: 16,
-    color: '#64748b',
-    marginBottom: 4,
+    fontFamily: 'Inter-Regular',
+    color: '#ffffff',
+    opacity: 0.9,
   },
-  restaurantName: {
+  
+  adminName: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1e293b',
+    fontFamily: 'Inter-Bold',
+    color: '#ffffff',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
+  
+  headerRight: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  
   notificationButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
     position: 'relative',
-    padding: 8,
   },
+  
   notificationBadge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#ef4444',
-    borderRadius: 10,
+    top: 8,
+    right: 8,
+    backgroundColor: '#ff6b6b',
+    borderRadius: 4,
     minWidth: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  
   notificationBadgeText: {
     color: '#ffffff',
     fontSize: 12,
     fontWeight: 'bold',
   },
   
-  // Stats Grid
-  statsGrid: {
-    flexDirection: isWeb ? 'row' : 'column',
-    flexWrap: 'wrap',
-    padding: 16,
-    gap: 16,
-  },
-  statCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    flex: isWeb ? 1 : undefined,
-    minWidth: isWeb ? 200 : undefined,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  statCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statCardTitle: {
-    fontSize: 14,
-    color: '#64748b',
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  statCardValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 8,
-  },
-  statCardChange: {
-    flexDirection: 'row',
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  changeText: {
-    fontSize: 14,
-    color: '#64748b',
-    marginLeft: 4,
-  },
-  revenueCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#10b981',
-  },
-  ordersCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#3b82f6',
-  },
-  customersCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#f59e0b',
-  },
-  avgOrderCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#8b5cf6',
+  
+  logoutButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   
-  // Quick Actions
-  quickActionsContainer: {
-    padding: 16,
-  },
-  quickActionsGrid: {
-    flexDirection: isWeb ? 'row' : 'column',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  quickActionButton: {
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    padding: 16,
-    flex: isWeb ? 1 : undefined,
-    minWidth: isWeb ? 200 : undefined,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  quickActionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  quickActionSubtitle: {
-    fontSize: 14,
-    color: '#64748b',
+  content: {
+    flex: 1,
   },
   
-  // Sections
   section: {
-    padding: 16,
+    paddingHorizontal: 20,
+    marginBottom: 32,
   },
+  
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
+  
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1e293b',
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: '#3b82f6',
-    fontWeight: '500',
+    fontSize: 22,
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
+    marginBottom: 16,
   },
   
-  // Request Cards
-  requestCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#f59e0b',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+  viewAllText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#3b8dba',
   },
-  requestHeader: {
+  
+  todayStatsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 16,
+  },
+  
+  todayStatCard: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#b1e0e7',
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  
+  statIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#f0f8ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  
+  statValue: {
+    fontSize: 28,
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
+    marginBottom: 4,
+  },
+  
+  statLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#3b8dba',
+  },
+  
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  
+  metricCard: {
+    width: '47%',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#b1e0e7',
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  
+  metricIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f0f8ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  
+  metricValue: {
+    fontSize: 24,
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
+    marginBottom: 4,
+  },
+  
+  metricLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#3b8dba',
+  },
+  
+  orderStatusGrid: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  
+  orderStatusCard: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#b1e0e7',
+    borderLeftWidth: 4,
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  
+  orderStatusHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
-  requestCustomer: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  requestType: {
-    fontSize: 12,
-    color: '#64748b',
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  requestDetails: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 4,
-  },
-  requestTime: {
-    fontSize: 12,
-    color: '#94a3b8',
-    marginBottom: 12,
-  },
-  requestActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  approveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#dcfce7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    flex: 1,
-    justifyContent: 'center',
-  },
-  approveButtonText: {
-    marginLeft: 4,
-    fontSize: 14,
-    color: '#16a34a',
-    fontWeight: '500',
-  },
-  rejectButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fee2e2',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    flex: 1,
-    justifyContent: 'center',
-  },
-  rejectButtonText: {
-    marginLeft: 4,
-    fontSize: 14,
-    color: '#dc2626',
-    fontWeight: '500',
+  
+  orderStatusValue: {
+    fontSize: 28,
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
+    marginLeft: 12,
   },
   
-  // Order Cards
+  orderStatusLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#3b8dba',
+  },
+  
   orderCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    borderWidth: 1,
+    borderColor: '#b1e0e7',
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowRadius: 8,
+    elevation: 6,
   },
+  
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
+  
   orderNumber: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
   },
+  
   orderStatus: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
+  
   orderStatusText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: 'Inter-SemiBold',
+    color: '#ffffff',
   },
+  
   orderDetails: {
     fontSize: 14,
-    color: '#64748b',
+    fontFamily: 'Inter-Regular',
+    color: '#3b8dba',
     marginBottom: 8,
   },
+  
   orderFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  
   orderTotal: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1e293b',
-  },
-  orderTime: {
-    fontSize: 12,
-    color: '#94a3b8',
+    fontSize: 18,
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
   },
   
-  // Notification Cards
+  orderTime: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#3b8dba',
+  },
+  
   notificationCard: {
     backgroundColor: '#ffffff',
     borderRadius: 8,
@@ -688,32 +744,76 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
+  
   unreadNotification: {
     borderLeftWidth: 4,
     borderLeftColor: '#3b82f6',
   },
+  
   notificationContent: {
     flex: 1,
   },
+  
   notificationTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
     marginBottom: 4,
   },
+  
   notificationMessage: {
     fontSize: 14,
-    color: '#64748b',
+    fontFamily: 'Inter-Regular',
+    color: '#3b8dba',
     marginBottom: 4,
   },
+  
   notificationTime: {
     fontSize: 12,
-    color: '#94a3b8',
+    fontFamily: 'Inter-Medium',
+    color: '#3b8dba',
   },
+  
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#3b82f6',
+  },
+  
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  
+  quickActionButton: {
+    width: '47%',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#b1e0e7',
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  
+  quickActionTitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1e3a8a',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  
+  quickActionSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#3b8dba',
+    textAlign: 'center',
   },
 }); 

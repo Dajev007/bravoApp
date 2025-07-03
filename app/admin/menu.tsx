@@ -18,9 +18,9 @@ import {
   getRestaurantMenuItems,
   createMenuItem,
   updateMenuItem,
-  deleteMenuItem,
-  getCategories
+  deleteMenuItem
 } from '@/lib/admin-database';
+import { getCategories } from '@/lib/database';
 import { 
   PlusIcon, 
   EditIcon, 

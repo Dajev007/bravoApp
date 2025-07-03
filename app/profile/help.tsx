@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,190 +8,211 @@ import {
   Linking,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, MessageCircle, Phone, Mail, CircleHelp as HelpCircle, FileText, Star, ChevronRight } from 'lucide-react-native';
+import { ArrowLeft, Phone, Mail, MessageCircle, Globe, FileText, ChevronDown, ChevronRight } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const helpTopics = [
   {
     id: '1',
-    title: 'Order Issues',
-    description: 'Problems with your order, delivery, or refunds',
-    icon: '📦',
+    title: 'Getting Started',
+    icon: '🚀',
+    faqs: [
+      {
+        question: 'How do I create an account?',
+        answer: 'Tap "Sign Up" on the welcome screen and enter your phone number. You\'ll receive a verification code to complete the registration process.',
+      },
+      {
+        question: 'How do I find restaurants near me?',
+        answer: 'Use the search bar on the home screen or browse by cuisine type. Make sure location services are enabled for the best results.',
+      },
+      {
+        question: 'How do I scan QR codes for dine-in orders?',
+        answer: 'Tap the QR Scanner tab at the bottom and point your camera at the QR code on your table. This will open the restaurant\'s menu for table ordering.',
+      },
+    ],
   },
   {
     id: '2',
-    title: 'Account & Profile',
-    description: 'Managing your account, profile, and preferences',
-    icon: '👤',
+    title: 'Ordering & Payment',
+    icon: '🛒',
+    faqs: [
+      {
+        question: 'How do I place an order?',
+        answer: 'Browse restaurants, select items to add to your cart, choose delivery or pickup, and proceed to checkout. You can pay with credit card or other available payment methods.',
+      },
+      {
+        question: 'Can I modify my order after placing it?',
+        answer: 'You can modify your order within a few minutes of placing it, as long as the restaurant hasn\'t started preparing it. Contact the restaurant directly for urgent changes.',
+      },
+      {
+        question: 'What payment methods do you accept?',
+        answer: 'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and Apple Pay. Cash on delivery may be available for some restaurants.',
+      },
+    ],
   },
   {
     id: '3',
-    title: 'Payment & Billing',
-    description: 'Payment methods, charges, and billing questions',
-    icon: '💳',
+    title: 'Delivery & Pickup',
+    icon: '🚚',
+    faqs: [
+      {
+        question: 'How long does delivery take?',
+        answer: 'Delivery times vary by restaurant and location, typically 20-45 minutes. You\'ll see estimated delivery times before placing your order.',
+      },
+      {
+        question: 'Can I track my order?',
+        answer: 'Yes! Once your order is confirmed, you can track it in real-time from the Orders section. You\'ll receive notifications when your order status changes.',
+      },
+      {
+        question: 'What if my order is late or missing items?',
+        answer: 'Contact us immediately through the app or call our support line. We\'ll work with the restaurant to resolve the issue and may provide a refund or credit.',
+      },
+    ],
   },
   {
     id: '4',
-    title: 'App & Technical',
-    description: 'App crashes, bugs, and technical difficulties',
-    icon: '📱',
-  },
-  {
-    id: '5',
-    title: 'Restaurant Partners',
-    description: 'Questions about restaurants and menu items',
-    icon: '🍽️',
-  },
-  {
-    id: '6',
-    title: 'Promotions & Offers',
-    description: 'Coupons, discounts, and promotional codes',
-    icon: '🎁',
+    title: 'Account & Settings',
+    icon: '⚙️',
+    faqs: [
+      {
+        question: 'How do I update my profile information?',
+        answer: 'Go to Profile > Edit Profile to update your name, phone number, and other details. Changes are saved automatically.',
+      },
+      {
+        question: 'How do I manage my addresses?',
+        answer: 'In your profile, tap "Delivery Addresses" to add, edit, or delete saved addresses. You can set a default address for faster checkout.',
+      },
+      {
+        question: 'How do I change notification settings?',
+        answer: 'Go to Profile > Settings > Notifications to customize which notifications you receive and how you receive them.',
+      },
+    ],
   },
 ];
 
 const contactMethods = [
   {
     id: '1',
-    title: 'Live Chat',
-    description: 'Chat with our support team',
-    icon: MessageCircle,
-    action: () => console.log('Opening live chat...'),
-    available: '24/7',
+    title: 'Call Us',
+    description: 'Speak with our support team',
+    icon: Phone,
+    action: () => Linking.openURL('tel:+1234567890'),
   },
   {
     id: '2',
-    title: 'Phone Support',
-    description: 'Call our customer service',
-    icon: Phone,
-    action: () => Linking.openURL('tel:+1-800-BRAVO-NEST'),
-    available: '9 AM - 9 PM',
+    title: 'Email Support',
+    description: 'Send us a detailed message',
+    icon: Mail,
+    action: () => Linking.openURL('mailto:support@bravonest.com'),
   },
   {
     id: '3',
-    title: 'Email Support',
-    description: 'Send us an email',
-    icon: Mail,
-    action: () => Linking.openURL('mailto:support@bravonest.com'),
-    available: 'Response within 24h',
+    title: 'Live Chat',
+    description: 'Chat with us in real-time',
+    icon: MessageCircle,
+    action: () => {}, // Would open chat interface
+  },
+  {
+    id: '4',
+    title: 'Visit Website',
+    description: 'Browse our help center',
+    icon: Globe,
+    action: () => Linking.openURL('https://bravonest.com/help'),
   },
 ];
 
 export default function HelpScreen() {
+  const [expandedTopic, setExpandedTopic] = useState<string | null>(null);
+
+  const toggleTopic = (topicId: string) => {
+    setExpandedTopic(expandedTopic === topicId ? null : topicId);
+  };
+
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={['#3b8dba', '#a2c7e7']}
+        style={styles.header}
+      >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft color="#0077b6" size={24} />
+          <ArrowLeft color="#ffffff" size={24} />
         </TouchableOpacity>
         <Text style={styles.title}>Help & Support</Text>
-        <View style={{ width: 24 }} />
-      </View>
+        <View style={styles.headerSpacer} />
+      </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Get Help</Text>
-          
+        {/* Quick Help */}
+        <View style={styles.quickHelpSection}>
+          <Text style={styles.sectionTitle}>Quick Help</Text>
+          <Text style={styles.sectionDescription}>
+            Get instant answers to common questions
+          </Text>
+        </View>
+
+        {/* FAQ Topics */}
+        <View style={styles.faqSection}>
+          {helpTopics.map((topic) => (
+            <View key={topic.id} style={styles.topicContainer}>
+              <TouchableOpacity
+                style={styles.topicHeader}
+                onPress={() => toggleTopic(topic.id)}
+              >
+                <View style={styles.topicInfo}>
+                  <Text style={styles.topicIcon}>{topic.icon}</Text>
+                  <Text style={styles.topicTitle}>{topic.title}</Text>
+                </View>
+                {expandedTopic === topic.id ? (
+                  <ChevronDown color="#3b8dba" size={20} />
+                ) : (
+                  <ChevronRight color="#3b8dba" size={20} />
+                )}
+              </TouchableOpacity>
+
+              {expandedTopic === topic.id && (
+                <View style={styles.topicContent}>
+                  {topic.faqs.map((faq, index) => (
+                    <View key={index} style={styles.faqCard}>
+                      <Text style={styles.faqQuestion}>{faq.question}</Text>
+                      <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
+
+        {/* Contact Support */}
+        <View style={styles.contactSection}>
+          <Text style={styles.sectionTitle}>Contact Support</Text>
+          <Text style={styles.sectionDescription}>
+            Still need help? Our support team is here for you
+          </Text>
+
           {contactMethods.map((method) => (
             <TouchableOpacity
               key={method.id}
               style={styles.contactCard}
               onPress={method.action}
             >
+              <method.icon color="#3b8dba" size={24} />
               <View style={styles.contactInfo}>
-                <View style={styles.contactIcon}>
-                  <method.icon color="#0077b6" size={20} />
-                </View>
-                <View style={styles.contactDetails}>
-                  <Text style={styles.contactTitle}>{method.title}</Text>
-                  <Text style={styles.contactDescription}>{method.description}</Text>
-                  <Text style={styles.contactAvailability}>{method.available}</Text>
-                </View>
+                <Text style={styles.contactTitle}>{method.title}</Text>
+                <Text style={styles.contactDescription}>{method.description}</Text>
               </View>
-              <ChevronRight color="#90e0ef" size={20} />
+              <ChevronRight color="#a2c7e7" size={20} />
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Help Topics */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Browse Help Topics</Text>
-          
-          {helpTopics.map((topic) => (
-            <TouchableOpacity key={topic.id} style={styles.topicCard}>
-              <View style={styles.topicInfo}>
-                <Text style={styles.topicIcon}>{topic.icon}</Text>
-                <View style={styles.topicDetails}>
-                  <Text style={styles.topicTitle}>{topic.title}</Text>
-                  <Text style={styles.topicDescription}>{topic.description}</Text>
-                </View>
-              </View>
-              <ChevronRight color="#90e0ef" size={20} />
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* FAQ */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <HelpCircle color="#0077b6" size={20} />
-            <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-          </View>
-          
-          <TouchableOpacity style={styles.faqCard}>
-            <Text style={styles.faqQuestion}>How do I track my order?</Text>
-            <Text style={styles.faqAnswer}>
-              You can track your order in real-time from the Orders section or by tapping 
-              the notification when your order status updates.
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.faqCard}>
-            <Text style={styles.faqQuestion}>What if my order is late?</Text>
-            <Text style={styles.faqAnswer}>
-              If your order is significantly delayed, you'll receive automatic updates. 
-              You can also contact the restaurant directly or reach out to our support team.
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.faqCard}>
-            <Text style={styles.faqQuestion}>How do I cancel my order?</Text>
-            <Text style={styles.faqAnswer}>
-              Orders can be cancelled within 5 minutes of placing them. After that, 
-              please contact our support team for assistance.
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Additional Resources */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Additional Resources</Text>
-          
-          <TouchableOpacity style={styles.resourceCard}>
-            <FileText color="#0077b6" size={20} />
-            <Text style={styles.resourceText}>Terms of Service</Text>
-            <ChevronRight color="#90e0ef" size={20} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.resourceCard}>
-            <FileText color="#0077b6" size={20} />
-            <Text style={styles.resourceText}>Privacy Policy</Text>
-            <ChevronRight color="#90e0ef" size={20} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.resourceCard}>
-            <Star color="#0077b6" size={20} />
-            <Text style={styles.resourceText}>Rate BravoNest</Text>
-            <ChevronRight color="#90e0ef" size={20} />
-          </TouchableOpacity>
-        </View>
-
-        {/* App Info */}
-        <View style={styles.appInfo}>
-          <Text style={styles.appInfoTitle}>BravoNest v1.0.0</Text>
+        {/* App Information */}
+        <View style={styles.appInfoSection}>
+          <Text style={styles.appInfoTitle}>BravoNest</Text>
           <Text style={styles.appInfoText}>
-            Need more help? Our support team is here to assist you 24/7.
+            Version 1.0.0{'\n'}
+            Making food delivery simple and delightful.{'\n'}
+            © 2024 BravoNest. All rights reserved.
           </Text>
         </View>
       </ScrollView>
@@ -202,18 +223,14 @@ export default function HelpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#caf0f8',
+    backgroundColor: '#f0f8ff',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#90e0ef',
   },
   backButton: {
     padding: 8,
@@ -221,81 +238,54 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#ffffff',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  headerSpacer: {
+    width: 40,
   },
   content: {
     flex: 1,
   },
-  section: {
-    backgroundColor: '#FFFFFF',
-    marginBottom: 8,
-    paddingVertical: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  quickHelpSection: {
     paddingHorizontal: 20,
-    marginBottom: 16,
-    gap: 12,
+    paddingVertical: 24,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    color: '#1e3a8a',
+    marginBottom: 8,
   },
-  contactCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ade8f4',
-  },
-  contactInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  contactIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: '#ade8f4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  contactDetails: {
-    flex: 1,
-  },
-  contactTitle: {
+  sectionDescription: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
-    marginBottom: 4,
-  },
-  contactDescription: {
-    fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
-    marginBottom: 2,
+    color: '#3b8dba',
+    lineHeight: 22,
   },
-  contactAvailability: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: '#48cae4',
-  },
-  topicCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  faqSection: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ade8f4',
+    marginBottom: 24,
+  },
+  topicContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#b1e0e7',
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  topicHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
   },
   topicInfo: {
     flexDirection: 'row',
@@ -308,68 +298,82 @@ const styles = StyleSheet.create({
     width: 32,
     textAlign: 'center',
   },
-  topicDetails: {
-    flex: 1,
-  },
   topicTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
-    marginBottom: 4,
+    fontSize: 18,
+    fontFamily: 'Inter-Bold',
+    color: '#1e3a8a',
   },
-  topicDescription: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+  topicContent: {
+    borderTopWidth: 1,
+    borderTopColor: '#f0f8ff',
   },
   faqCard: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#ade8f4',
+    borderBottomColor: '#f0f8ff',
   },
   faqQuestion: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+    color: '#1e3a8a',
     marginBottom: 8,
   },
   faqAnswer: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: '#3b8dba',
     lineHeight: 20,
   },
-  resourceCard: {
+  contactSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  contactCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ade8f4',
-    gap: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#b1e0e7',
+    shadowColor: '#3b8dba',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  resourceText: {
+  contactInfo: {
     flex: 1,
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#03045e',
+    marginLeft: 16,
   },
-  appInfo: {
+  contactTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1e3a8a',
+    marginBottom: 4,
+  },
+  contactDescription: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#3b8dba',
+  },
+  appInfoSection: {
     alignItems: 'center',
     paddingVertical: 32,
     paddingHorizontal: 20,
   },
   appInfoTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: '#1e3a8a',
     marginBottom: 8,
   },
   appInfoText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: '#3b8dba',
     textAlign: 'center',
     lineHeight: 20,
   },

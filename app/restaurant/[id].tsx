@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useTheme } from '@/contexts/ThemeContext';
 import { ArrowLeft, Star, Clock, MapPin, Heart, Plus, UtensilsCrossed } from 'lucide-react-native';
 import { getRestaurantById, getMenuItems, toggleFavorite, getTableById, type Restaurant, type MenuItem } from '@/lib/database';
 import { useCart } from '@/contexts/CartContext';
@@ -17,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { OrderTypeSelector } from '@/components/ui/OrderTypeSelector';
 
 export default function RestaurantScreen() {
+  const { colors, isDark } = useTheme();
   const { id, tableId, tableNumber, orderType } = useLocalSearchParams<{ 
     id: string; 
     tableId?: string; 
@@ -143,10 +145,12 @@ export default function RestaurantScreen() {
     ? menuItems 
     : menuItems.filter(item => item.category?.name === selectedCategory);
 
+  const styles = createStyles(colors, isDark);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0077b6" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading restaurant...</Text>
       </View>
     );
@@ -169,7 +173,9 @@ export default function RestaurantScreen() {
       <View style={styles.headerContainer}>
         <Image source={{ uri: restaurant.image_url }} style={styles.headerImage} />
         <LinearGradient
-          colors={['transparent', 'rgba(3,4,94,0.8)']}
+          colors={isDark 
+            ? ['transparent', 'rgba(26, 26, 26, 0.9)'] 
+            : ['transparent', 'rgba(3,4,94,0.8)']}
           style={styles.headerOverlay}
         />
         
@@ -193,7 +199,7 @@ export default function RestaurantScreen() {
           <Text style={styles.restaurantCuisine}>{restaurant.cuisine_type}</Text>
           <View style={styles.restaurantMeta}>
             <View style={styles.metaItem}>
-              <Star color="#48cae4" size={16} fill="#48cae4" />
+              <Star color={colors.accent} size={16} fill={colors.accent} />
               <Text style={styles.metaText}>{restaurant.rating} ({restaurant.review_count})</Text>
             </View>
             <View style={styles.metaItem}>
@@ -212,7 +218,7 @@ export default function RestaurantScreen() {
       {cartOrderType && (
         <View style={styles.orderTypeBanner}>
           <View style={styles.orderTypeInfo}>
-            <UtensilsCrossed color="#0077b6" size={20} />
+            <UtensilsCrossed color={colors.primary} size={20} />
             <Text style={styles.orderTypeText}>
               {cartOrderType === 'delivery' && 'Delivery Order'}
               {cartOrderType === 'takeaway' && 'Takeaway Order'}
@@ -256,7 +262,7 @@ export default function RestaurantScreen() {
                   styles.categoryChip,
                   selectedCategory === category && styles.activeCategoryChip,
                 ]}
-                onPress={() => setSelectedCategory(category)}
+                onPress={() => setSelectedCategory(category || '')}
               >
                 <Text
                   style={[
@@ -321,38 +327,38 @@ export default function RestaurantScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#caf0f8',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#caf0f8',
+    backgroundColor: colors.background,
   },
   loadingText: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: colors.text,
     marginTop: 12,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#caf0f8',
+    backgroundColor: colors.background,
     paddingHorizontal: 32,
   },
   errorText: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+    color: colors.text,
     marginBottom: 24,
   },
   backButton: {
-    backgroundColor: '#0077b6',
+    backgroundColor: colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -425,14 +431,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   orderTypeBanner: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#ade8f4',
+    borderBottomColor: colors.border,
   },
   orderTypeInfo: {
     flexDirection: 'row',
@@ -442,25 +448,32 @@ const styles = StyleSheet.create({
   orderTypeText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+    color: colors.text,
   },
   changeOrderType: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
-    color: '#0077b6',
+    color: colors.primary,
   },
   content: {
     flex: 1,
   },
   detailsSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     padding: 20,
     marginBottom: 8,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   description: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#03045e',
+    color: colors.text,
     lineHeight: 24,
     marginBottom: 16,
   },
@@ -473,22 +486,29 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
-    color: '#0077b6',
+    color: colors.textSecondary,
   },
   detailValue: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#03045e',
+    color: colors.text,
   },
   categorySection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     paddingVertical: 20,
     marginBottom: 8,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sectionTitle: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: colors.text,
     paddingHorizontal: 20,
     marginBottom: 16,
   },
@@ -496,33 +516,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   categoryChip: {
-    backgroundColor: '#ade8f4',
+    backgroundColor: colors.accent,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginRight: 12,
   },
   activeCategoryChip: {
-    backgroundColor: '#0077b6',
+    backgroundColor: colors.primary,
   },
   categoryText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
-    color: '#0077b6',
+    color: colors.textSecondary,
   },
   activeCategoryText: {
     color: '#FFFFFF',
   },
   menuSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     paddingHorizontal: 20,
     paddingBottom: 20,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   menuItem: {
     flexDirection: 'row',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#ade8f4',
+    borderBottomColor: colors.border,
     position: 'relative',
   },
   menuItemInfo: {
@@ -532,13 +560,13 @@ const styles = StyleSheet.create({
   menuItemName: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+    color: colors.text,
     marginBottom: 4,
   },
   menuItemDescription: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#0077b6',
+    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 8,
   },
@@ -550,10 +578,10 @@ const styles = StyleSheet.create({
   menuItemPrice: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',
-    color: '#03045e',
+    color: colors.text,
   },
   popularBadge: {
-    backgroundColor: '#48cae4',
+    backgroundColor: colors.accent,
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -564,7 +592,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   dietaryBadge: {
-    backgroundColor: '#90e0ef',
+    backgroundColor: colors.accentLight,
     borderRadius: 4,
     paddingHorizontal: 4,
     paddingVertical: 2,
@@ -581,8 +609,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 8,
     bottom: 8,
-    backgroundColor: '#0077b6',
+    backgroundColor: colors.primary,
     borderRadius: 16,
     padding: 8,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.4 : 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });

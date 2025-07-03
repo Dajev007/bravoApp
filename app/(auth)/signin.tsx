@@ -8,13 +8,16 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Eye, EyeOff, Phone } from 'lucide-react-native';
 
 export default function SignInScreen() {
+  const { colors, isDark } = useTheme();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -62,9 +65,16 @@ export default function SignInScreen() {
     }
   };
 
+  const styles = createStyles(colors, isDark);
+
+  // Gradient colors based on theme
+  const gradientColors = isDark 
+    ? ['#1a1a1a', '#2d2d2d', '#404040'] as const // Dark ash colors
+    : [colors.primary, colors.primaryLight, colors.accentLight] as const; // Light theme
+
   return (
     <LinearGradient
-      colors={['#03045e', '#023e8a', '#0077b6']}
+      colors={gradientColors}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -87,14 +97,14 @@ export default function SignInScreen() {
             <Text style={styles.label}>Phone Number</Text>
             <View style={styles.phoneContainer}>
               <View style={styles.phoneIcon}>
-                <Phone color="#0077b6" size={20} />
+                <Phone color={colors.primary} size={20} />
               </View>
               <TextInput
                 style={styles.phoneInput}
                 value={phoneNumber}
                 onChangeText={handlePhoneChange}
                 placeholder="(555) 123-4567"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.textSecondary}
                 keyboardType="phone-pad"
                 maxLength={14}
               />
@@ -109,7 +119,7 @@ export default function SignInScreen() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Enter your password"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.textSecondary}
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity
@@ -117,9 +127,9 @@ export default function SignInScreen() {
                 onPress={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff color="#666" size={20} />
+                  <EyeOff color={colors.textTertiary} size={20} />
                 ) : (
-                  <Eye color="#666" size={20} />
+                  <Eye color={colors.textTertiary} size={20} />
                 )}
               </TouchableOpacity>
             </View>
@@ -128,13 +138,15 @@ export default function SignInScreen() {
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <TouchableOpacity
-            style={[styles.signInButton, isLoading && styles.disabledButton]}
+            style={[styles.signInButton, (!phoneNumber.trim() || isLoading) && styles.disabledButton]}
             onPress={handleSignIn}
-            disabled={isLoading}
+            disabled={!phoneNumber.trim() || isLoading}
           >
-            <Text style={styles.signInButtonText}>
-              {isLoading ? 'Signing In...' : 'Sign In'}
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator color={colors.primary} size="small" />
+            ) : (
+              <Text style={styles.signInButtonText}>Sign In</Text>
+            )}
           </TouchableOpacity>
 
           <View style={styles.footer}>
@@ -149,7 +161,7 @@ export default function SignInScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -174,6 +186,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 8,
     marginTop: 40,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   subtitle: {
     fontSize: 16,
@@ -196,14 +211,21 @@ const styles = StyleSheet.create({
   phoneContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
+    borderWidth: isDark ? 1 : 0,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.3 : 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   phoneIcon: {
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderRightWidth: 1,
-    borderRightColor: '#E5E5E5',
+    borderRightColor: isDark ? 'rgba(255, 255, 255, 0.1)' : colors.borderLight,
   },
   phoneInput: {
     flex: 1,
@@ -211,13 +233,20 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#333',
+    color: isDark ? '#FFFFFF' : colors.text,
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
+    borderWidth: isDark ? 1 : 0,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.3 : 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   passwordInput: {
     flex: 1,
@@ -225,28 +254,31 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#333',
+    color: isDark ? '#FFFFFF' : colors.text,
   },
   eyeButton: {
     paddingHorizontal: 16,
   },
   errorText: {
-    color: '#ade8f4',
+    color: '#FFFFFF',
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     marginBottom: 16,
     textAlign: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 12,
+    borderRadius: 8,
   },
   signInButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.9)' : '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 18,
     alignItems: 'center',
     marginTop: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: isDark ? 0.4 : 0.25,
+    shadowRadius: 12,
     elevation: 8,
   },
   disabledButton: {
@@ -255,7 +287,7 @@ const styles = StyleSheet.create({
   signInButtonText: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
-    color: '#03045e',
+    color: colors.primary,
   },
   footer: {
     flexDirection: 'row',
@@ -272,7 +304,7 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#90e0ef',
+    color: isDark ? '#E0E0E0' : '#90e0ef',
     textDecorationLine: 'underline',
   },
 });
