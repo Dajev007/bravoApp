@@ -42,7 +42,7 @@ export default function OrdersScreen() {
 
   const getStatusColor = (status: Order['status']) => {
     switch (status) {
-      case 'delivered':
+      case 'completed':
         return '#3b8dba';
       case 'cancelled':
         return '#1e3a8a';
@@ -66,9 +66,9 @@ export default function OrdersScreen() {
       case 'ready':
         return 'Ready for Pickup';
       case 'picked_up':
-        return 'Out for Delivery';
-      case 'delivered':
-        return 'Delivered';
+        return 'Ready for Pickup';
+      case 'completed':
+        return 'Completed';
       case 'cancelled':
         return 'Cancelled';
       default:
@@ -165,8 +165,8 @@ export default function OrdersScreen() {
               <View style={styles.metaItem}>
                 <Clock color="#3b8dba" size={16} />
                 <Text style={styles.metaText}>
-                  {order.estimated_delivery_time
-                    ? new Date(order.estimated_delivery_time).toLocaleTimeString([], {
+                  {order.estimated_ready_time
+                    ? new Date(order.estimated_ready_time).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
                       })

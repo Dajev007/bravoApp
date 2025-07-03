@@ -38,7 +38,7 @@ const helpTopics = [
     faqs: [
       {
         question: 'How do I place an order?',
-        answer: 'Browse restaurants, select items to add to your cart, choose delivery or pickup, and proceed to checkout. You can pay with credit card or other available payment methods.',
+        answer: 'Browse restaurants, select items to add to your cart, choose pickup or dine-in, and proceed to checkout. You can pay with credit card or other available payment methods.',
       },
       {
         question: 'Can I modify my order after placing it?',
@@ -52,12 +52,12 @@ const helpTopics = [
   },
   {
     id: '3',
-    title: 'Delivery & Pickup',
-    icon: '🚚',
+    title: 'Pickup & Dine-In',
+    icon: '🥡',
     faqs: [
       {
-        question: 'How long does delivery take?',
-        answer: 'Delivery times vary by restaurant and location, typically 20-45 minutes. You\'ll see estimated delivery times before placing your order.',
+        question: 'How long does order preparation take?',
+        answer: 'Preparation times vary by restaurant and order complexity, typically 15-30 minutes. You\'ll see estimated ready times before placing your order.',
       },
       {
         question: 'Can I track my order?',

@@ -50,7 +50,7 @@ export default function RestaurantScreen() {
   useEffect(() => {
     // Set order context from URL params
     if (orderType) {
-      setCartOrderType(orderType as 'delivery' | 'takeaway' | 'dine_in');
+      setCartOrderType(orderType as 'takeaway' | 'dine_in');
     }
     if (tableId) {
       setCartTableId(tableId);
@@ -130,11 +130,29 @@ export default function RestaurantScreen() {
     Alert.alert('Added to Cart', `${item.name} has been added to your cart`);
   };
 
-  const handleOrderTypeSelect = (type: 'delivery' | 'takeaway' | 'dine_in') => {
+  const handleOrderTypeSelect = (type: 'takeaway' | 'dine_in') => {
     setCartOrderType(type);
     
-    // If selecting dine-in but no table is set, clear table info
-    if (type !== 'dine_in') {
+    if (type === 'dine_in') {
+      // If selecting dine-in but no table is set, show info about QR scanning
+      if (!tableId) {
+        Alert.alert(
+          'Dine In Selected',
+          'For dine-in orders, you can scan the QR code at your table for the best experience. You can also proceed without a table assignment.',
+          [
+            {
+              text: 'Scan QR Code',
+              onPress: () => router.push('/(tabs)/scanner'),
+            },
+            {
+              text: 'Continue',
+              style: 'default',
+            },
+          ]
+        );
+      }
+    } else {
+      // Clear table info for takeaway
       setCartTableId(null);
       setCartTableNumber(null);
     }
@@ -204,11 +222,7 @@ export default function RestaurantScreen() {
             </View>
             <View style={styles.metaItem}>
               <Clock color="#FFFFFF" size={16} />
-              <Text style={styles.metaText}>{restaurant.delivery_time_min}-{restaurant.delivery_time_max} min</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <MapPin color="#FFFFFF" size={16} />
-              <Text style={styles.metaText}>${restaurant.delivery_fee} delivery</Text>
+              <Text style={styles.metaText}>{restaurant.delivery_time_min}-{restaurant.delivery_time_max} min prep</Text>
             </View>
           </View>
         </View>
@@ -220,7 +234,6 @@ export default function RestaurantScreen() {
           <View style={styles.orderTypeInfo}>
             <UtensilsCrossed color={colors.primary} size={20} />
             <Text style={styles.orderTypeText}>
-              {cartOrderType === 'delivery' && 'Delivery Order'}
               {cartOrderType === 'takeaway' && 'Takeaway Order'}
               {cartOrderType === 'dine_in' && tableNumber && `Dine In - Table ${tableNumber}`}
               {cartOrderType === 'dine_in' && !tableNumber && 'Dine In Order'}
@@ -321,7 +334,7 @@ export default function RestaurantScreen() {
         visible={showOrderTypeSelector}
         onClose={() => setShowOrderTypeSelector(false)}
         onSelectType={handleOrderTypeSelect}
-        isDineInAvailable={!!tableId || cartOrderType === 'dine_in'}
+        isDineInAvailable={true}
       />
     </View>
   );
@@ -495,7 +508,7 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   categorySection: {
     backgroundColor: colors.surface,
-    paddingVertical: 20,
+    paddingVertical: 12,
     marginBottom: 8,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -506,32 +519,36 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     elevation: 3,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: 'Inter-Bold',
     color: colors.text,
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   categoryFilter: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   categoryChip: {
-    backgroundColor: colors.accent,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 12,
+    backgroundColor: colors.accentLight,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   activeCategoryChip: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   categoryText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'Inter-Medium',
-    color: colors.textSecondary,
+    color: colors.text,
   },
   activeCategoryText: {
     color: '#FFFFFF',
+    fontFamily: 'Inter-SemiBold',
   },
   menuSection: {
     backgroundColor: colors.surface,

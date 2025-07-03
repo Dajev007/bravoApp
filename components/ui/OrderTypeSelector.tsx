@@ -6,12 +6,12 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
-import { Truck, ShoppingBag, UtensilsCrossed, X } from 'lucide-react-native';
+import { ShoppingBag, UtensilsCrossed, X } from 'lucide-react-native';
 
 interface OrderTypeSelectorProps {
   visible: boolean;
   onClose: () => void;
-  onSelectType: (type: 'delivery' | 'takeaway' | 'dine_in') => void;
+  onSelectType: (type: 'takeaway' | 'dine_in') => void;
   isDineInAvailable?: boolean;
 }
 
@@ -23,13 +23,6 @@ export function OrderTypeSelector({
 }: OrderTypeSelectorProps) {
   const orderTypes = [
     {
-      type: 'delivery' as const,
-      title: 'Delivery',
-      description: 'Get food delivered to your location',
-      icon: Truck,
-      color: '#0077b6',
-    },
-    {
       type: 'takeaway' as const,
       title: 'Takeaway',
       description: 'Pick up your order from the restaurant',
@@ -39,7 +32,7 @@ export function OrderTypeSelector({
     ...(isDineInAvailable ? [{
       type: 'dine_in' as const,
       title: 'Dine In',
-      description: 'Order for your table',
+      description: 'Order for dining at the restaurant',
       icon: UtensilsCrossed,
       color: '#90e0ef',
     }] : []),

@@ -52,10 +52,9 @@ export default function CartScreen() {
     );
   }
 
-  const deliveryFee = orderType === 'delivery' ? 2.99 : 0;
   const serviceFee = 1.50;
   const tax = totalPrice * 0.08; // 8% tax
-  const finalTotal = totalPrice + deliveryFee + serviceFee + tax;
+  const finalTotal = totalPrice + serviceFee + tax;
 
   const handleCheckout = async () => {
     if (!orderType) {
@@ -82,7 +81,6 @@ export default function CartScreen() {
           unit_price: item.price,
         })),
         subtotal: totalPrice,
-        delivery_fee: deliveryFee,
         service_fee: serviceFee,
         tax: tax,
         tip: 0,
@@ -142,7 +140,6 @@ export default function CartScreen() {
       {orderType && (
         <View style={styles.orderTypeInfo}>
           <Text style={styles.orderTypeText}>
-            {orderType === 'delivery' && '🚚 Delivery Order'}
             {orderType === 'takeaway' && '🥡 Takeaway Order'}
             {orderType === 'dine_in' && tableNumber && `🍽️ Dine In - Table ${tableNumber}`}
             {orderType === 'dine_in' && !tableNumber && '🍽️ Dine In Order'}
@@ -204,12 +201,7 @@ export default function CartScreen() {
           <Text style={styles.summaryValue}>${totalPrice.toFixed(2)}</Text>
         </View>
         
-        {orderType === 'delivery' && (
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Delivery Fee</Text>
-            <Text style={styles.summaryValue}>${deliveryFee.toFixed(2)}</Text>
-          </View>
-        )}
+
         
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Service Fee</Text>

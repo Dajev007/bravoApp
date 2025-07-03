@@ -18,8 +18,8 @@ interface CartContextType {
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
-  orderType: 'delivery' | 'takeaway' | 'dine_in' | null;
-  setOrderType: (type: 'delivery' | 'takeaway' | 'dine_in' | null) => void;
+  orderType: 'takeaway' | 'dine_in' | null;
+  setOrderType: (type: 'takeaway' | 'dine_in' | null) => void;
   tableId: string | null;
   setTableId: (id: string | null) => void;
   tableNumber: number | null;
@@ -34,7 +34,7 @@ interface CartProviderProps {
 
 export function CartProvider({ children }: CartProviderProps) {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [orderType, setOrderType] = useState<'delivery' | 'takeaway' | 'dine_in' | null>(null);
+  const [orderType, setOrderType] = useState<'takeaway' | 'dine_in' | null>(null);
   const [tableId, setTableId] = useState<string | null>(null);
   const [tableNumber, setTableNumber] = useState<number | null>(null);
 

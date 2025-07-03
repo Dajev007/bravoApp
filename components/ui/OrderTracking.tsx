@@ -17,7 +17,7 @@ interface OrderTrackingProps {
 
 interface OrderStatus {
   id: string;
-  status: 'confirmed' | 'preparing' | 'ready' | 'picked_up' | 'delivered';
+  status: 'confirmed' | 'preparing' | 'ready' | 'picked_up' | 'completed';
   timestamp: string;
   message: string;
 }
@@ -85,7 +85,7 @@ export function OrderTracking({ visible, onClose, orderId }: OrderTrackingProps)
         return <CheckCircle color={color} size={size} fill={isActive ? color : 'transparent'} />;
       case 'picked_up':
         return <Truck color={color} size={size} />;
-      case 'delivered':
+      case 'completed':
         return <MapPin color={color} size={size} />;
       default:
         return <Clock color={color} size={size} />;
@@ -93,7 +93,7 @@ export function OrderTracking({ visible, onClose, orderId }: OrderTrackingProps)
   };
 
   const getStatusColor = (status: OrderStatus['status']) => {
-    const statusOrder = ['confirmed', 'preparing', 'ready', 'picked_up', 'delivered'];
+    const statusOrder = ['confirmed', 'preparing', 'ready', 'picked_up', 'completed'];
     const currentIndex = statusOrder.indexOf(currentStatus);
     const statusIndex = statusOrder.indexOf(status);
     
@@ -144,15 +144,11 @@ export function OrderTracking({ visible, onClose, orderId }: OrderTrackingProps)
           </View>
 
           <View style={styles.deliveryInfo}>
-            <Text style={styles.deliveryTitle}>Delivery Information</Text>
+            <Text style={styles.deliveryTitle}>Order Information</Text>
             <View style={styles.deliveryDetails}>
               <View style={styles.deliveryRow}>
                 <MapPin color="#0077b6" size={20} />
-                <Text style={styles.deliveryText}>123 Main St, San Francisco, CA</Text>
-              </View>
-              <View style={styles.deliveryRow}>
-                <Truck color="#0077b6" size={20} />
-                <Text style={styles.deliveryText}>Standard Delivery</Text>
+                <Text style={styles.deliveryText}>Your order is being prepared</Text>
               </View>
             </View>
           </View>

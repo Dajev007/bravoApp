@@ -16,9 +16,9 @@ interface UserPreferences {
   budget?: string;
   mood?: string;
   location?: string;
-  deliveryTime?: string;
+  preparationTime?: string;
   rating?: number;
-  orderType?: 'delivery' | 'takeaway' | 'dine_in';
+  orderType?: 'takeaway' | 'dine_in';
   // Enhanced custom preferences
   taste?: string; // spicy, salty, sweet, mild
   environment?: string; // casual, fine dining, outdoor, family-friendly
@@ -185,10 +185,10 @@ export class GeminiService {
         return false;
       }
 
-      // Filter by delivery time preference
-      if (preferences.deliveryTime) {
-        const maxTime = preferences.deliveryTime === 'fast' ? 30 : 
-                       preferences.deliveryTime === 'medium' ? 45 : 60;
+      // Filter by preparation time preference
+      if (preferences.preparationTime) {
+        const maxTime = preferences.preparationTime === 'fast' ? 30 : 
+                       preferences.preparationTime === 'medium' ? 45 : 60;
         if (restaurant.delivery_time_max > maxTime) {
           return false;
         }
@@ -245,8 +245,8 @@ export class GeminiService {
     if (userPreferences.budget) {
       prompt += `- Budget: ${userPreferences.budget}\n`;
     }
-    if (userPreferences.deliveryTime) {
-      prompt += `- Delivery time preference: ${userPreferences.deliveryTime}\n`;
+    if (userPreferences.preparationTime) {
+      prompt += `- Preparation time preference: ${userPreferences.preparationTime}\n`;
     }
     if (userPreferences.rating) {
       prompt += `- Minimum rating: ${userPreferences.rating}\n`;
@@ -366,8 +366,8 @@ EXPLANATION: [Brief explanation of why it matches the user's preferences]`;
       score -= 15;
     }
     
-    // Bonus for fast delivery if requested
-    if (preferences.deliveryTime === 'fast' && restaurant.delivery_time_max <= 30) {
+    // Bonus for fast preparation if requested
+    if (preferences.preparationTime === 'fast' && restaurant.delivery_time_max <= 30) {
       score += 20;
     }
     
@@ -400,8 +400,8 @@ EXPLANATION: [Brief explanation of why it matches the user's preferences]`;
           explanation += `   • Budget-friendly with low delivery fee\n`;
         }
         
-        if (userPreferences.deliveryTime === 'fast' && restaurant.delivery_time_max <= 30) {
-          explanation += `   • Quick delivery as requested\n`;
+        if (userPreferences.preparationTime === 'fast' && restaurant.delivery_time_max <= 30) {
+          explanation += `   • Quick preparation as requested\n`;
         }
         
         if (userProfile?.favorite_cuisines?.some(fav => 

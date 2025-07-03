@@ -26,14 +26,12 @@ interface Order {
   id: string;
   user_id: string;
   restaurant_id: string;
-  order_type: 'delivery' | 'takeaway' | 'dine_in';
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+  order_type: 'takeaway' | 'dine_in';
+  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled';
   total: number;
   subtotal: number;
-  delivery_fee: number;
   tax: number;
   special_instructions?: string;
-  delivery_address?: string;
   table_id?: string;
   created_at: string;
   updated_at: string;
@@ -175,7 +173,7 @@ export default function OrdersManagement() {
     { key: 'confirmed', label: 'Confirmed', count: orders.filter(o => o.status === 'confirmed').length },
     { key: 'preparing', label: 'Preparing', count: orders.filter(o => o.status === 'preparing').length },
     { key: 'ready', label: 'Ready', count: orders.filter(o => o.status === 'ready').length },
-    { key: 'delivered', label: 'Delivered', count: orders.filter(o => o.status === 'delivered').length },
+    { key: 'completed', label: 'Completed', count: orders.filter(o => o.status === 'completed').length },
   ];
 
   return (
@@ -244,8 +242,7 @@ export default function OrdersManagement() {
                 <Text style={styles.orderNumber}>Order #{order.id.slice(-8)}</Text>
                 <View style={styles.orderType}>
                   <Text style={styles.orderTypeText}>
-                    {order.order_type === 'dine_in' ? 'Dine In' : 
-                     order.order_type === 'takeaway' ? 'Takeaway' : 'Delivery'}
+                    {order.order_type === 'dine_in' ? 'Dine In' : 'Takeaway'}
                   </Text>
                   {order.table && (
                     <Text style={styles.tableNumber}>• Table {order.table.table_number}</Text>
@@ -301,15 +298,7 @@ export default function OrdersManagement() {
               </View>
             )}
 
-            {/* Delivery Address */}
-            {order.delivery_address && (
-              <View style={styles.deliveryAddress}>
-                <MapPinIcon size={16} color="#64748b" />
-                <Text style={styles.addressText}>
-                  {order.delivery_address}
-                </Text>
-              </View>
-            )}
+
 
             <View style={styles.orderFooter}>
               <View style={styles.orderTotal}>

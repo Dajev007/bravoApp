@@ -50,19 +50,18 @@ export interface Order {
   id: string;
   user_id: string;
   restaurant_id: string;
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'picked_up' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'picked_up' | 'completed' | 'cancelled';
   subtotal: number;
-  delivery_fee: number;
   service_fee: number;
   tax: number;
   tip: number;
   total: number;
   payment_method: string;
   special_instructions?: string;
-  estimated_delivery_time?: string;
-  actual_delivery_time?: string;
+  estimated_ready_time?: string;
+  actual_ready_time?: string;
   created_at: string;
-  order_type: 'delivery' | 'takeaway' | 'dine_in';
+  order_type: 'takeaway' | 'dine_in';
   table_id?: string;
   restaurant?: Restaurant;
   order_items?: OrderItem[];
@@ -104,17 +103,7 @@ export interface UserProfile {
   favorite_cuisines?: string[];
 }
 
-export interface DeliveryAddress {
-  id: string;
-  user_id: string;
-  label: string;
-  address_line_1: string;
-  address_line_2?: string;
-  city: string;
-  state: string;
-  zip_code: string;
-  is_default: boolean;
-}
+
 
 export interface RestaurantTable {
   id: string;
@@ -290,13 +279,12 @@ export async function createOrder(orderData: {
     special_instructions?: string;
   }>;
   subtotal: number;
-  delivery_fee: number;
   service_fee: number;
   tax: number;
   tip: number;
   total: number;
   special_instructions?: string;
-  order_type: 'delivery' | 'takeaway' | 'dine_in';
+  order_type: 'takeaway' | 'dine_in';
   table_id?: string;
 }) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -314,13 +302,12 @@ export async function createOrder(orderData: {
       user_id: user.id,
       restaurant_id: orderData.restaurant_id,
       subtotal: orderData.subtotal,
-      delivery_fee: orderData.delivery_fee,
       service_fee: orderData.service_fee,
       tax: orderData.tax,
       tip: orderData.tip,
       total: orderData.total,
       special_instructions: orderData.special_instructions,
-      estimated_delivery_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      estimated_ready_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
       order_type: orderData.order_type,
       table_id: orderData.table_id,
     })
@@ -402,8 +389,8 @@ export async function completeOrder(orderId: string) {
   const { data, error } = await supabase
     .from('orders')
     .update({ 
-      status: 'delivered',
-      actual_delivery_time: new Date().toISOString()
+      status: 'completed',
+      actual_ready_time: new Date().toISOString()
     })
     .eq('id', orderId)
     .select()
@@ -551,34 +538,3 @@ export async function toggleFavorite(restaurantId: string) {
   }
 }
 
-// Delivery address functions
-export async function getUserAddresses() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('User not authenticated');
-
-  const { data, error } = await supabase
-    .from('delivery_addresses')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('is_default', { ascending: false });
-
-  if (error) throw error;
-  return data as DeliveryAddress[];
-}
-
-export async function createAddress(addressData: Omit<DeliveryAddress, 'id' | 'user_id'>) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('User not authenticated');
-
-  const { data, error } = await supabase
-    .from('delivery_addresses')
-    .insert({
-      user_id: user.id,
-      ...addressData,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as DeliveryAddress;
-}

@@ -30,13 +30,7 @@ const menuItems = [
     route: '/profile/payment',
     description: 'Manage cards and payment options',
   },
-  {
-    id: '3',
-    title: 'Delivery Addresses',
-    icon: MapPin,
-    route: '/profile/addresses',
-    description: 'Manage your saved addresses',
-  },
+
   {
     id: '4',
     title: 'Notifications',

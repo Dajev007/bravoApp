@@ -49,8 +49,8 @@ export default function PaymentScreen() {
     {
       id: '3',
       type: 'cash',
-      name: 'Cash on Delivery',
-      details: 'Pay when your order arrives',
+      name: 'Cash on Pickup',
+      details: 'Pay when you pick up your order',
       isDefault: false,
       icon: '💵',
     },
